@@ -1,18 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { toast } from "sonner";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { categorySchema } from "@/lib/validations/masters";
+import type { ActionResult } from "@/lib/actions/types";
 
-export type MasterActionState = { error: string } | null;
+export type MasterActionState = ActionResult;
 
 export async function createCategory(
   _prevState: MasterActionState,
   formData: FormData,
 ): Promise<MasterActionState> {
-  await requireProfile(); // any signed-in user may add categories
+  await requireProfile();
 
   const parsed = categorySchema.safeParse({
     name: formData.get("name"),
@@ -38,16 +38,18 @@ export async function createCategory(
     return { error: `Could not create category: ${error.message}` };
   }
 
-  toast.success("Category created.");
-  revalidatePath("/categories");
-  revalidatePath("/definitions");
+  revalidatePath("/create-task");
   revalidatePath("/tasks");
-  return null;
+  return { success: "Category created." };
 }
 
-export async function toggleCategoryActive(id: string) {
+export async function toggleCategoryActive(
+  id: string,
+): Promise<ActionResult> {
   const profile = await requireProfile();
-  if (profile.role !== "admin") return;
+  if (profile.role !== "admin") {
+    return { error: "Only admins can change category status." };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -57,8 +59,7 @@ export async function toggleCategoryActive(id: string) {
     .single();
 
   if (error || !data) {
-    toast.error("Category not found.");
-    return;
+    return { error: "Category not found." };
   }
 
   const { error: updateError } = await supabase
@@ -67,14 +68,14 @@ export async function toggleCategoryActive(id: string) {
     .eq("id", id);
 
   if (updateError) {
-    toast.error(`Could not update category: ${updateError.message}`);
-    return;
+    return { error: `Could not update category: ${updateError.message}` };
   }
 
-  toast.success(
-    data.is_active ? "Category deactivated." : "Category activated.",
-  );
-  revalidatePath("/categories");
-  revalidatePath("/definitions");
+  revalidatePath("/create-task");
   revalidatePath("/tasks");
+  return {
+    success: data.is_active
+      ? "Category deactivated."
+      : "Category activated.",
+  };
 }

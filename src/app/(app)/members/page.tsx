@@ -125,6 +125,8 @@ function MembersSkeleton() {
   );
 }
 
+export const instant = false;
+
 export default function MembersPage() {
   return (
     <div className="grid gap-4">

@@ -15,7 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { createMember } from "@/app/(app)/members/actions";
+import { createMember } from "@/lib/actions/members";
+import { useResultToast } from "@/hooks/use-result-toast";
 
 const ROLE_ITEMS = [
   { label: "Member", value: "user" },
@@ -25,6 +26,7 @@ const ROLE_ITEMS = [
 export function CreateMemberForm() {
   const [state, formAction, pending] = useActionState(createMember, null);
   const [role, setRole] = useState<string | null>("user");
+  useResultToast(state);
 
   const items = [{ label: "Select a role…", value: null }, ...ROLE_ITEMS];
 

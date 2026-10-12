@@ -1,16 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import type { ActionResult } from "@/lib/actions/types";
 
 const loginSchema = z.object({
   email: z.email(),
   password: z.string().min(1),
 });
 
-export type LoginState = { error: string } | null;
+export type LoginState = ActionResult;
 
 export async function login(
   _prevState: LoginState,
@@ -36,5 +36,12 @@ export async function login(
   }
 
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  return { success: "Welcome back!" };
+}
+
+export async function signOut(): Promise<ActionResult> {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  return { success: "Signed out." };
 }

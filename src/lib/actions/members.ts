@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { toast } from "sonner";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -9,8 +8,9 @@ import {
   createMemberSchema,
   updateMemberRoleSchema,
 } from "@/lib/validations/members";
+import type { ActionResult } from "@/lib/actions/types";
 
-export type MemberActionState = { error: string } | null;
+export type MemberActionState = ActionResult;
 
 function formDataValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -55,35 +55,31 @@ export async function createMember(
       .update({ role: "admin" })
       .eq("id", data.user.id);
     if (roleError) {
-      toast.error(
-        `Member created, but role could not be set: ${roleError.message}`,
-      );
       revalidatePath("/members");
-      return null;
+      return {
+        error: `Member created, but role could not be set: ${roleError.message}`,
+      };
     }
   }
 
-  toast.success("Member created. They can sign in now.");
   revalidatePath("/members");
   revalidatePath("/tasks");
-  return null;
+  return { success: "Member created. They can sign in now." };
 }
 
 export async function updateMemberRole(
   id: string,
   role: "admin" | "user",
-): Promise<void> {
+): Promise<ActionResult> {
   const adminProfile = await requireAdmin();
 
   const parsed = updateMemberRoleSchema.safeParse({ id, role });
   if (!parsed.success) {
-    toast.error("Invalid role change.");
-    return;
+    return { error: "Invalid role change." };
   }
 
   if (parsed.data.id === adminProfile.id) {
-    toast.error("You cannot change your own role.");
-    return;
+    return { error: "You cannot change your own role." };
   }
 
   const supabase = await createClient();
@@ -93,15 +89,15 @@ export async function updateMemberRole(
     .eq("id", parsed.data.id);
 
   if (error) {
-    toast.error(`Could not update role: ${error.message}`);
-    return;
+    return { error: `Could not update role: ${error.message}` };
   }
 
-  toast.success(
-    parsed.data.role === "admin"
-      ? "Member is now an admin."
-      : "Member is now a user.",
-  );
   revalidatePath("/members");
   revalidatePath("/tasks");
+  return {
+    success:
+      parsed.data.role === "admin"
+        ? "Member is now an admin."
+        : "Member is now a user.",
+  };
 }

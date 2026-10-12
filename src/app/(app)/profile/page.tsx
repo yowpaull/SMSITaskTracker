@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { PageHeader } from "@/components/shared/page-header";
+import { SignOutButton } from "@/components/layout/sign-out-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { signOut } from "@/app/auth/actions";
 import { requireProfile } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 
@@ -47,11 +46,9 @@ async function ProfileContent() {
           <p className="text-muted-foreground text-xs">Member since</p>
           <p>{formatDateTime(profile.created_at)}</p>
         </div>
-        <form action={signOut}>
-          <Button type="submit" variant="outline">
-            Sign out
-          </Button>
-        </form>
+        <div>
+          <SignOutButton />
+        </div>
       </CardContent>
     </Card>
   );
@@ -75,6 +72,8 @@ function ProfileSkeleton() {
     </Card>
   );
 }
+
+export const instant = false;
 
 export default function ProfilePage() {
   return (

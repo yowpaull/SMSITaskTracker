@@ -1,15 +1,25 @@
 "use client";
 
-import { useActionState } from "react";
+import { useEffect, useActionState } from "react";
+import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { login } from "./actions";
+import { login } from "@/lib/actions/auth";
+import { useResultToast } from "@/hooks/use-result-toast";
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(login, null);
+  const router = useRouter();
+  useResultToast(state);
+
+  useEffect(() => {
+    if (state?.success) {
+      router.push("/dashboard");
+    }
+  }, [state, router]);
 
   return (
     <form action={formAction} className="grid gap-4">

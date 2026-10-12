@@ -14,7 +14,7 @@ import {
   listMembers,
   listTaskDefinitions,
 } from "@/lib/data/masters";
-import { createTaskLog } from "../actions";
+import { createTaskLog } from "@/lib/actions/task-logs";
 
 async function NewTaskLogContent() {
   const profile = await requireProfile();
@@ -97,6 +97,8 @@ function FormSkeleton() {
     </div>
   );
 }
+
+export const instant = false;
 
 export default function NewTaskLogPage() {
   return (

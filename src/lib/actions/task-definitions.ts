@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { toast } from "sonner";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { taskDefinitionSchema } from "@/lib/validations/masters";
+import type { ActionResult } from "@/lib/actions/types";
 
-export type MasterActionState = { error: string } | null;
+export type MasterActionState = ActionResult;
 
 function formDataValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -17,7 +17,7 @@ export async function createTaskDefinition(
   _prevState: MasterActionState,
   formData: FormData,
 ): Promise<MasterActionState> {
-  await requireProfile(); // both roles may add definitions
+  await requireProfile();
 
   const parsed = taskDefinitionSchema.safeParse({
     name: formDataValue(formData, "name"),
@@ -37,18 +37,19 @@ export async function createTaskDefinition(
   });
 
   if (error) {
-    return { error: `Could not create task definition: ${error.message}` };
+    return { error: `Could not create task: ${error.message}` };
   }
 
-  toast.success("Task definition created.");
-  revalidatePath("/definitions");
+  revalidatePath("/create-task");
   revalidatePath("/tasks");
-  return null;
+  return { success: "Task created." };
 }
 
-export async function toggleTaskDefinitionActive(id: string) {
+export async function toggleTaskActive(id: string): Promise<ActionResult> {
   const profile = await requireProfile();
-  if (profile.role !== "admin") return;
+  if (profile.role !== "admin") {
+    return { error: "Only admins can change task status." };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -58,8 +59,7 @@ export async function toggleTaskDefinitionActive(id: string) {
     .single();
 
   if (error || !data) {
-    toast.error("Task definition not found.");
-    return;
+    return { error: "Task not found." };
   }
 
   const { error: updateError } = await supabase
@@ -68,13 +68,12 @@ export async function toggleTaskDefinitionActive(id: string) {
     .eq("id", id);
 
   if (updateError) {
-    toast.error(`Could not update task: ${updateError.message}`);
-    return;
+    return { error: `Could not update task: ${updateError.message}` };
   }
 
-  toast.success(
-    data.is_active ? "Task definition deactivated." : "Task definition activated.",
-  );
-  revalidatePath("/definitions");
+  revalidatePath("/create-task");
   revalidatePath("/tasks");
+  return {
+    success: data.is_active ? "Task deactivated." : "Task activated.",
+  };
 }

@@ -1,8 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { toast } from "sonner";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -12,8 +10,9 @@ import {
   updateTaskLogSchema,
 } from "@/lib/validations/task-log";
 import type { TaskStatus } from "@/lib/status";
+import type { ActionResult } from "@/lib/actions/types";
 
-export type TaskLogActionState = { error: string } | null;
+export type TaskLogActionState = ActionResult;
 
 function formDataValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -65,7 +64,7 @@ export async function createTaskLog(
 
   revalidatePath("/tasks");
   revalidatePath("/dashboard");
-  redirect("/tasks");
+  return { success: "Task log created." };
 }
 
 export async function updateTaskLog(
@@ -116,9 +115,8 @@ export async function updateTaskLog(
     return { error: `Could not update task log: ${error.message}` };
   }
 
-  toast.success("Task log updated.");
   revalidatePath("/tasks");
   revalidatePath("/dashboard");
   revalidatePath(`/tasks/${parsed.data.id}`);
-  return null;
+  return { success: "Task log updated." };
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useEffect, useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,7 +25,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { toDateInputValue } from "@/lib/format";
 import { STATUS_LABELS, TASK_STATUSES, type TaskStatus } from "@/lib/status";
 import type { OptionItem } from "@/components/tasks/task-filters";
-import type { TaskLogActionState } from "@/app/(app)/tasks/actions";
+import type { TaskLogActionState } from "@/lib/actions/task-logs";
+import { useResultToast } from "@/hooks/use-result-toast";
 
 type InitialLog = {
   id: string;
@@ -60,6 +62,14 @@ export function TaskLogForm({
   defaultAssigneeId?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
+  const router = useRouter();
+  useResultToast(state);
+
+  useEffect(() => {
+    if (mode === "create" && state?.success) {
+      router.push("/tasks");
+    }
+  }, [state, mode, router]);
   const [taskId, setTaskId] = useState<string | null>(
     initial?.task_id ?? null,
   );
@@ -126,8 +136,7 @@ export function TaskLogForm({
           <input type="hidden" name="task_id" value={taskId ?? ""} />
           {noDefinitions && (
             <p className="text-destructive text-xs">
-              No active task definitions. Add one on the Definitions page
-              first.
+              No active tasks yet. Add one on the Create Task page first.
             </p>
           )}
         </Field>
@@ -273,6 +282,7 @@ export function TaskLogForm({
           type="button"
           variant="outline"
           render={<Link href="/tasks" />}
+          nativeButton={false}
         >
           Cancel
         </Button>

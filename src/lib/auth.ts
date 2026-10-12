@@ -21,7 +21,7 @@ export async function requireUser(): Promise<AuthUser> {
   return user;
 }
 
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const user = await getAuthUser();
   if (!user) return null;
   const supabase = await createClient();
@@ -32,7 +32,7 @@ export async function getProfile(): Promise<Profile | null> {
     .single();
   if (error) return null;
   return data as Profile;
-}
+});
 
 export async function requireProfile(): Promise<Profile> {
   const user = await requireUser();

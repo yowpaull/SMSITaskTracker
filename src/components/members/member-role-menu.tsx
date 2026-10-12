@@ -1,16 +1,19 @@
 "use client";
 
+import { useTransition } from "react";
 import { MoreHorizontalIcon } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { updateMemberRole } from "@/app/(app)/members/actions";
+import { updateMemberRole } from "@/lib/actions/members";
 
 export function MemberRoleMenu({
   memberId,
@@ -21,10 +24,23 @@ export function MemberRoleMenu({
   currentRole: "admin" | "user";
   isSelf: boolean;
 }) {
+  const [pending, startTransition] = useTransition();
+
   if (isSelf) {
     return (
       <span className="text-muted-foreground text-xs">It&apos;s you</span>
     );
+  }
+
+  function changeRole(role: "admin" | "user") {
+    startTransition(async () => {
+      const result = await updateMemberRole(memberId, role);
+      if (result?.error) {
+        toast.error(result.error);
+      } else if (result?.success) {
+        toast.success(result.success);
+      }
+    });
   }
 
   return (
@@ -34,6 +50,7 @@ export function MemberRoleMenu({
           <Button
             variant="outline"
             size="sm"
+            disabled={pending}
             aria-label="Manage member role"
           />
         }
@@ -42,19 +59,17 @@ export function MemberRoleMenu({
         Manage
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Change role</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Change role</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         {currentRole !== "admin" && (
-          <DropdownMenuItem
-            onClick={() => void updateMemberRole(memberId, "admin")}
-          >
+          <DropdownMenuItem onClick={() => changeRole("admin")}>
             Make admin
           </DropdownMenuItem>
         )}
         {currentRole !== "user" && (
-          <DropdownMenuItem
-            onClick={() => void updateMemberRole(memberId, "user")}
-          >
+          <DropdownMenuItem onClick={() => changeRole("user")}>
             Make member
           </DropdownMenuItem>
         )}

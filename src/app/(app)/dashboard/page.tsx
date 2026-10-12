@@ -64,6 +64,8 @@ function DashboardSkeleton() {
   );
 }
 
+export const instant = false;
+
 export default function DashboardPage() {
   return (
     <div className="grid gap-6">

@@ -11,10 +11,12 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { createBrand } from "@/app/(app)/brands/actions";
+import { createBrand } from "@/lib/actions/brands";
+import { useResultToast } from "@/hooks/use-result-toast";
 
 export function CreateBrandForm() {
   const [state, formAction, pending] = useActionState(createBrand, null);
+  useResultToast(state);
 
   return (
     <Card>

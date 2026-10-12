@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { PageHeader } from "@/components/shared/page-header";
+import { ActionForm } from "@/components/shared/action-form";
 import { CreateBrandForm } from "@/components/brands/create-brand-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { requireProfile } from "@/lib/auth";
 import { listBrands } from "@/lib/data/masters";
-import { toggleBrandActive } from "./actions";
+import { toggleBrandActive } from "@/lib/actions/brands";
 
 async function BrandsContent() {
   const profile = await requireProfile();
@@ -74,13 +75,13 @@ async function BrandsContent() {
                       </TableCell>
                       {isAdmin && (
                         <TableCell>
-                          <form
+                          <ActionForm
                             action={toggleBrandActive.bind(null, brand.id)}
                           >
                             <Button type="submit" variant="outline" size="sm">
                               {brand.is_active ? "Deactivate" : "Activate"}
                             </Button>
-                          </form>
+                          </ActionForm>
                         </TableCell>
                       )}
                     </TableRow>
@@ -135,6 +136,8 @@ function BrandsSkeleton() {
     </div>
   );
 }
+
+export const instant = false;
 
 export default function BrandsPage() {
   return (

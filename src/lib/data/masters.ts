@@ -20,6 +20,24 @@ export async function listCategories(onlyActive = false) {
   return (data ?? []) as Category[];
 }
 
+export type CategoryWithTasks = Category & {
+  tasks: { id: string; name: string; is_active: boolean }[];
+};
+
+export async function listCategoriesWithTasks() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*, tasks ( id, name, is_active )")
+    .order("name");
+  if (error) throw new Error(`Failed to load categories: ${error.message}`);
+  const categories = (data ?? []) as unknown as CategoryWithTasks[];
+  for (const category of categories) {
+    category.tasks.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  return categories;
+}
+
 export async function listTaskDefinitions(onlyActive = false) {
   const supabase = await createClient();
   let query = supabase

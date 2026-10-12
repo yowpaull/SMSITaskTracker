@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { toast } from "sonner";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { brandSchema } from "@/lib/validations/masters";
+import type { ActionResult } from "@/lib/actions/types";
 
-export type MasterActionState = { error: string } | null;
+export type MasterActionState = ActionResult;
 
 export async function createBrand(
   _prevState: MasterActionState,
@@ -33,13 +33,14 @@ export async function createBrand(
     return { error: `Could not create brand: ${error.message}` };
   }
 
-  toast.success("Brand created.");
   revalidatePath("/brands");
   revalidatePath("/tasks");
-  return null;
+  return { success: "Brand created." };
 }
 
-export async function toggleBrandActive(id: string) {
+export async function toggleBrandActive(
+  id: string,
+): Promise<ActionResult> {
   await requireAdmin();
 
   const supabase = await createClient();
@@ -50,8 +51,7 @@ export async function toggleBrandActive(id: string) {
     .single();
 
   if (error || !data) {
-    toast.error("Brand not found.");
-    return;
+    return { error: "Brand not found." };
   }
 
   const { error: updateError } = await supabase
@@ -60,11 +60,12 @@ export async function toggleBrandActive(id: string) {
     .eq("id", id);
 
   if (updateError) {
-    toast.error(`Could not update brand: ${updateError.message}`);
-    return;
+    return { error: `Could not update brand: ${updateError.message}` };
   }
 
-  toast.success(data.is_active ? "Brand deactivated." : "Brand activated.");
   revalidatePath("/brands");
   revalidatePath("/tasks");
+  return {
+    success: data.is_active ? "Brand deactivated." : "Brand activated.",
+  };
 }

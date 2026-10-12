@@ -139,6 +139,7 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
               variant="outline"
               size="sm"
               disabled={page <= 1}
+              nativeButton={false}
               render={
                 <Link
                   href={
@@ -155,6 +156,7 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
               variant="outline"
               size="sm"
               disabled={page >= totalPages}
+              nativeButton={false}
               render={
                 <Link
                   href={
@@ -192,6 +194,8 @@ function TaskListSkeleton() {
   );
 }
 
+export const instant = false;
+
 export default function TasksPage({
   searchParams,
 }: {
@@ -203,7 +207,10 @@ export default function TasksPage({
         title="Tasks"
         description="Task logs — one row per task, brand, and assignee."
         action={
-          <Button render={<Link href="/tasks/new" />}>
+          <Button
+            render={<Link href="/tasks/new" />}
+            nativeButton={false}
+          >
             <PlusIcon data-icon="inline-start" />
             New task log
           </Button>

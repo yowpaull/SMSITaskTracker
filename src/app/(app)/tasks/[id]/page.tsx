@@ -19,7 +19,7 @@ import {
   listTaskDefinitions,
 } from "@/lib/data/masters";
 import { formatDateTime } from "@/lib/format";
-import { updateTaskLog } from "../actions";
+import { updateTaskLog } from "@/lib/actions/task-logs";
 
 async function TaskLogDetailContent({
   idPromise,
@@ -135,6 +135,8 @@ function DetailSkeleton() {
     </div>
   );
 }
+
+export const instant = false;
 
 export default function TaskLogPage({
   params,

@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
@@ -7,6 +8,7 @@ import type { Profile } from "@/lib/types";
 export type AuthUser = { id: string; email?: string };
 
 export const getAuthUser = cache(async (): Promise<AuthUser | null> => {
+  await connection();
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error) return null;

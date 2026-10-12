@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { MetricCards, MetricCardsSkeleton } from "@/components/metrics/metric-cards";
 import { PageHeader } from "@/components/shared/page-header";
 import {
@@ -16,6 +17,7 @@ import {
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 
 async function DashboardContent() {
+  await connection();
   const [metrics, recent] = await Promise.all([
     getDashboardMetrics(),
     listRecentTaskLogs(5),
@@ -79,3 +81,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+// probe2

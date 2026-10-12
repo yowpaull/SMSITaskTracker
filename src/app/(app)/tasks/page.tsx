@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { PlusIcon } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,7 @@ function buildHref(
 }
 
 async function TaskListContent({ searchParams }: { searchParams: Promise<Params> }) {
+  await connection();
   const params = await searchParams;
   const { filters, page } = parseFilters(params);
 

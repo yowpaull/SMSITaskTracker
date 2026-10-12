@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import {
   Card,
@@ -26,6 +27,7 @@ async function TaskLogDetailContent({
 }: {
   idPromise: Promise<{ id: string }>;
 }) {
+  await connection();
   const { id } = await idPromise;
   const log = await getTaskLog(id);
   if (!log) notFound();

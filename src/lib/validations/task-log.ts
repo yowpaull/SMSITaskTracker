@@ -23,6 +23,10 @@ export const updateTaskLogSchema = z.object({
   important: z.boolean(),
 });
 
+export const deleteTaskLogSchema = z.object({
+  id: z.uuid(),
+});
+
 export type CreateTaskLogInput = z.infer<typeof createTaskLogSchema>;
 export type UpdateTaskLogInput = z.infer<typeof updateTaskLogSchema>;
 

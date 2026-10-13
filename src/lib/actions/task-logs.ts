@@ -5,6 +5,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   createTaskLogSchema,
+  deleteTaskLogSchema,
   formChecked,
   parseDeadline,
   updateTaskLogSchema,
@@ -118,5 +119,36 @@ export async function updateTaskLog(
   revalidatePath("/tasks");
   revalidatePath("/dashboard");
   revalidatePath(`/tasks/${parsed.data.id}`);
+  revalidatePath(`/tasks/${parsed.data.id}/edit`);
   return { success: "Task log updated." };
+}
+
+export async function deleteTaskLog(id: string): Promise<ActionResult> {
+  const parsed = deleteTaskLogSchema.safeParse({ id });
+  if (!parsed.success) {
+    return { error: "Invalid task log." };
+  }
+
+  await requireProfile();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("task_logs")
+    .delete()
+    .eq("id", parsed.data.id)
+    .select("id");
+
+  if (error) {
+    return { error: `Could not delete task log: ${error.message}` };
+  }
+
+  if (!data || data.length === 0) {
+    return {
+      error: "Task log not found or you don't have permission to delete it.",
+    };
+  }
+
+  revalidatePath("/tasks");
+  revalidatePath("/dashboard");
+  return { success: "Task log deleted." };
 }

@@ -48,6 +48,7 @@ export function TaskLogForm({
   members,
   initial,
   defaultAssigneeId,
+  cancelHref = "/tasks",
 }: {
   action: (
     prevState: TaskLogActionState,
@@ -60,6 +61,7 @@ export function TaskLogForm({
   members: OptionItem[];
   initial?: InitialLog;
   defaultAssigneeId?: string;
+  cancelHref?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
   const router = useRouter();
@@ -281,7 +283,7 @@ export function TaskLogForm({
         <Button
           type="button"
           variant="outline"
-          render={<Link href="/tasks" />}
+          render={<Link href={cancelHref} />}
           nativeButton={false}
         >
           Cancel

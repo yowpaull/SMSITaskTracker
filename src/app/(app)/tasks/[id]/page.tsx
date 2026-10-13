@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,20 +11,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BackButton } from "@/components/shared/back-button";
 import { PageHeader } from "@/components/shared/page-header";
+import { PriorityBadges } from "@/components/tasks/priority-badges";
 import { StatusBadge } from "@/components/tasks/status-badge";
-import { TaskLogForm } from "@/components/tasks/task-log-form";
-import { requireProfile } from "@/lib/auth";
 import { getTaskLog } from "@/lib/data/task-logs";
-import {
-  listBrands,
-  listMembers,
-  listTaskDefinitions,
-} from "@/lib/data/masters";
-import { formatDateTime } from "@/lib/format";
-import { updateTaskLog } from "@/lib/actions/task-logs";
+import { formatDate, formatDateTime } from "@/lib/format";
 
-async function TaskLogDetailContent({
+async function TaskLogViewContent({
   idPromise,
 }: {
   idPromise: Promise<{ id: string }>;
@@ -32,52 +28,34 @@ async function TaskLogDetailContent({
   const log = await getTaskLog(id);
   if (!log) notFound();
 
-  const profile = await requireProfile();
-  const isAdmin = profile.role === "admin";
-
-  const [brands, definitions, members] = await Promise.all([
-    listBrands(),
-    listTaskDefinitions(),
-    isAdmin ? listMembers() : Promise.resolve([]),
-  ]);
-
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-      <div className="grid gap-4">
-        <TaskLogForm
-          action={updateTaskLog}
-          mode="update"
-          isAdmin={isAdmin}
-          initial={log}
-          brands={brands.map((brand) => ({
-            label: brand.name,
-            value: brand.id,
-          }))}
-          definitions={definitions.map((definition) => ({
-            label: definition.category
-              ? `${definition.name} · ${definition.category.name}`
-              : definition.name,
-            value: definition.id,
-          }))}
-          members={members.map((member) => ({
-            label: member.full_name || member.email,
-            value: member.id,
-          }))}
-        />
-      </div>
-
-      <Card>
+    <div className="grid gap-4">
+      <PageHeader
+        title="Task log"
+        description="View task log details and history."
+        action={
+          <Button
+            render={<Link href={`/tasks/${log.id}/edit`} />}
+            nativeButton={false}
+          >
+            Edit
+          </Button>
+        }
+      />
+      <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-base">Details</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-base">
+            {log.task?.name ?? "Unknown task"}
+          </CardTitle>
+          <CardDescription className="flex items-center gap-2">
             <StatusBadge status={log.status} deadline={log.deadline} />
+            <PriorityBadges
+              urgent={log.urgent}
+              important={log.important}
+            />
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 text-sm">
-          <div>
-            <p className="text-muted-foreground text-xs">Task</p>
-            <p>{log.task?.name ?? "Unknown task"}</p>
-          </div>
           <div>
             <p className="text-muted-foreground text-xs">Category</p>
             <p>{log.task?.category?.name ?? "—"}</p>
@@ -93,6 +71,10 @@ async function TaskLogDetailContent({
                 log.assignee?.email ||
                 "—"}
             </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Deadline</p>
+            <p>{formatDate(log.deadline)}</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Completed at</p>
@@ -112,24 +94,23 @@ async function TaskLogDetailContent({
   );
 }
 
-function DetailSkeleton() {
+function ViewSkeleton() {
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]" aria-busy="true">
-      <div className="grid max-w-xl gap-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="grid gap-2">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-7 w-full" />
-          </div>
-        ))}
-        <Skeleton className="h-8 w-32" />
+    <div className="grid gap-4" aria-busy="true">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="grid gap-1">
+          <Skeleton className="h-7 w-32" />
+          <Skeleton className="h-4 w-52" />
+        </div>
+        <Skeleton className="h-9 w-20" />
       </div>
-      <Card>
+      <Card className="max-w-2xl">
         <CardHeader>
-          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-4 w-32" />
         </CardHeader>
         <CardContent className="grid gap-3">
-          {Array.from({ length: 6 }).map((_, index) => (
+          {Array.from({ length: 7 }).map((_, index) => (
             <Skeleton key={index} className="h-8 w-full" />
           ))}
         </CardContent>
@@ -147,12 +128,9 @@ export default function TaskLogPage({
 }) {
   return (
     <div className="grid gap-4">
-      <PageHeader
-        title="Task log"
-        description="Update status, priority, deadline, or assignment."
-      />
-      <Suspense fallback={<DetailSkeleton />}>
-        <TaskLogDetailContent idPromise={params} />
+      <BackButton href="/tasks" label="Back to tasks" />
+      <Suspense fallback={<ViewSkeleton />}>
+        <TaskLogViewContent idPromise={params} />
       </Suspense>
     </div>
   );

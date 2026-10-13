@@ -25,7 +25,8 @@ Use PostgreSQL through Supabase. Keep identifiers and relationships consistent w
 
 ### `categories`
 - `id uuid` — primary key, default `gen_random_uuid()`
-- `name text` — required and unique
+- `name text` — required; unique among main categories and among sibling subcategories
+- `parent_id uuid` — optional self-reference to `categories(id)`; `null` = main category, otherwise a subcategory (two levels only, enforced by trigger)
 - `short_description text` — optional
 - `is_active boolean` — default `true`
 - `created_at timestamptz` — default `now()`

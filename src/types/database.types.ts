@@ -44,6 +44,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          parent_id: string | null
           short_description: string | null
           updated_at: string
         }
@@ -52,6 +53,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          parent_id?: string | null
           short_description?: string | null
           updated_at?: string
         }
@@ -60,10 +62,18 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          parent_id?: string | null
           short_description?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

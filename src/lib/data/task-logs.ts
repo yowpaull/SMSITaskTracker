@@ -7,10 +7,50 @@ export const TASK_LOG_PAGE_SIZE = 25;
 const LOG_SELECT = `
   id, task_id, brand_id, assigned_to, created_by, status, urgent, important,
   completed_at, deadline, created_at, updated_at,
-  task:tasks!inner ( id, name, category_id, category:categories ( id, name ) ),
+  task:tasks!inner ( id, name, category_id, category:categories ( id, name, parent_id ) ),
   brand:brands ( id, name ),
   assignee:profiles!assigned_to ( id, full_name, email )
 `;
+
+/**
+ * Attach parent category names ("Main / Sub" labels) via a separate query —
+ * self-referencing embeds are not resolvable by PostgREST here.
+ */
+async function withCategoryParents(
+  logs: TaskLogWithRelations[],
+): Promise<TaskLogWithRelations[]> {
+  const parentIds = [
+    ...new Set(
+      logs
+        .map((log) => log.task?.category?.parent_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const parentNames = new Map<string, string>();
+  if (parentIds.length > 0) {
+    const supabase = await createClient();
+    const { data: parents, error } = await supabase
+      .from("categories")
+      .select("id, name")
+      .in("id", parentIds);
+    if (error) {
+      throw new Error(`Failed to load categories: ${error.message}`);
+    }
+    for (const parent of (parents ?? []) as { id: string; name: string }[]) {
+      parentNames.set(parent.id, parent.name);
+    }
+  }
+  for (const log of logs) {
+    const category = log.task?.category;
+    if (category?.parent_id) {
+      category.parent = {
+        id: category.parent_id,
+        name: parentNames.get(category.parent_id) ?? "",
+      };
+    }
+  }
+  return logs;
+}
 
 export async function listTaskLogs(filters: TaskLogFilters, page = 1) {
   const supabase = await createClient();
@@ -44,7 +84,9 @@ export async function listTaskLogs(filters: TaskLogFilters, page = 1) {
   if (error) throw new Error(`Failed to load task logs: ${error.message}`);
 
   return {
-    logs: (data ?? []) as unknown as TaskLogWithRelations[],
+    logs: await withCategoryParents(
+      (data ?? []) as unknown as TaskLogWithRelations[],
+    ),
     total: count ?? 0,
   };
 }
@@ -58,7 +100,9 @@ export async function listRecentTaskLogs(limit = 5) {
     .limit(limit);
 
   if (error) throw new Error(`Failed to load recent task logs: ${error.message}`);
-  return (data ?? []) as unknown as TaskLogWithRelations[];
+  return withCategoryParents(
+    (data ?? []) as unknown as TaskLogWithRelations[],
+  );
 }
 
 /**
@@ -89,7 +133,7 @@ export async function listTaskLogsInRange(fromIso: string, toIso: string) {
     from += CHUNK;
   }
 
-  return logs;
+  return withCategoryParents(logs);
 }
 
 export async function getTaskLog(id: string) {
@@ -101,7 +145,11 @@ export async function getTaskLog(id: string) {
     .maybeSingle();
 
   if (error) throw new Error(`Failed to load task log: ${error.message}`);
-  return (data ?? null) as TaskLogWithRelations | null;
+  if (!data) return null;
+  const [log] = await withCategoryParents([
+    data as unknown as TaskLogWithRelations,
+  ]);
+  return log;
 }
 
 export type DashboardMetrics = {

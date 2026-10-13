@@ -7,6 +7,7 @@ export const brandSchema = z.object({
 export const categorySchema = z.object({
   name: z.string().trim().min(1, "Name is required.").max(120),
   short_description: z.string().trim().max(500).optional(),
+  parent_id: z.uuid("Pick a main category.").optional(),
 });
 
 export const taskDefinitionSchema = z.object({

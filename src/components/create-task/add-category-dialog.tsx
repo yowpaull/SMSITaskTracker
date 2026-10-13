@@ -25,10 +25,17 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { createCategory } from "@/lib/actions/categories";
 
-export function AddCategoryDialog() {
+export function AddCategoryDialog({
+  parentId,
+  parentName,
+}: {
+  parentId?: string;
+  parentName?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const isSubcategory = Boolean(parentId);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -60,15 +67,19 @@ export function AddCategoryDialog() {
         render={
           <Button>
             <PlusIcon data-icon="inline-start" />
-            Add category
+            {isSubcategory ? "Add subcategory" : "Add category"}
           </Button>
         }
       />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add category</DialogTitle>
+          <DialogTitle>
+            {isSubcategory ? "Add subcategory" : "Add category"}
+          </DialogTitle>
           <DialogDescription>
-            Categories group related tasks, e.g. Marketing or Reporting.
+            {isSubcategory
+              ? `New subcategory under ${parentName}. Tasks can live in it or directly under ${parentName}.`
+              : "Categories group related tasks, e.g. Marketing or Reporting."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="grid gap-4">
@@ -77,6 +88,7 @@ export function AddCategoryDialog() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+          {parentId && <input type="hidden" name="parent_id" value={parentId} />}
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="category-name">Name</FieldLabel>
@@ -84,7 +96,7 @@ export function AddCategoryDialog() {
                 id="category-name"
                 name="name"
                 required
-                placeholder="e.g. Marketing"
+                placeholder={isSubcategory ? "e.g. Social media" : "e.g. Marketing"}
               />
             </Field>
             <Field>
@@ -104,7 +116,7 @@ export function AddCategoryDialog() {
           </FieldGroup>
           <Button type="submit" disabled={pending} className="w-fit">
             {pending && <Spinner data-icon="inline-start" />}
-            Add category
+            {isSubcategory ? "Add subcategory" : "Add category"}
           </Button>
         </form>
       </DialogContent>

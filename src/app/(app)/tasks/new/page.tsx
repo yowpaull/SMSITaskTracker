@@ -10,10 +10,8 @@ import { TaskLogForm } from "@/components/tasks/task-log-form";
 import { requireProfile } from "@/lib/auth";
 import {
   listBrands,
-  listCategories,
   listMembers,
-  listTaskDefinitions,
-  groupDefinitionsByCategory,
+  listTaskPickGroups,
 } from "@/lib/data/masters";
 import { createTaskLog } from "@/lib/actions/task-logs";
 
@@ -21,10 +19,9 @@ async function NewTaskLogContent() {
   const profile = await requireProfile();
   const isAdmin = profile.role === "admin";
 
-  const [brands, categories, definitions, members] = await Promise.all([
+  const [brands, taskGroups, members] = await Promise.all([
     listBrands(true),
-    listCategories(true),
-    listTaskDefinitions(true),
+    listTaskPickGroups(),
     isAdmin ? listMembers() : Promise.resolve([]),
   ]);
 
@@ -40,25 +37,13 @@ async function NewTaskLogContent() {
     );
   }
 
-  if (categories.length === 0) {
-    return (
-      <Empty>
-        <EmptyTitle>No active categories</EmptyTitle>
-        <EmptyDescription>
-          Add a category on the Categories page, then create a task
-          definition.
-        </EmptyDescription>
-      </Empty>
-    );
-  }
-
-  if (definitions.length === 0) {
+  if (taskGroups.length === 0) {
     return (
       <Empty>
         <EmptyTitle>No active task definitions</EmptyTitle>
         <EmptyDescription>
-          Add a task definition on the Definitions page before creating a
-          task log.
+          Add a category and a task on the Create Task page before creating
+          a task log.
         </EmptyDescription>
       </Empty>
     );
@@ -71,7 +56,7 @@ async function NewTaskLogContent() {
       isAdmin={isAdmin}
       defaultAssigneeId={profile.id}
       brands={brands.map((brand) => ({ label: brand.name, value: brand.id }))}
-      definitionGroups={groupDefinitionsByCategory(definitions)}
+      taskGroups={taskGroups}
       members={members.map((member) => ({
         label: member.full_name || member.email,
         value: member.id,

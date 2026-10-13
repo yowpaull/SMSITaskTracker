@@ -22,6 +22,7 @@ export type Category = {
   name: string;
   short_description: string | null;
   is_active: boolean;
+  parent_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -55,7 +56,12 @@ export type TaskLogWithRelations = TaskLog & {
     id: string;
     name: string;
     category_id: string;
-    category: { id: string; name: string } | null;
+    category: {
+      id: string;
+      name: string;
+      parent_id: string | null;
+      parent: { id: string; name: string } | null;
+    } | null;
   } | null;
   brand: { id: string; name: string } | null;
   assignee: { id: string; full_name: string; email: string } | null;
@@ -71,7 +77,13 @@ export type TaskLogFilters = {
   to?: string;
 };
 
-export type DefinitionGroup = {
-  categoryName: string;
-  tasks: { label: string; value: string }[];
+export type TaskOption = { label: string; value: string };
+
+/** Main category with its subcategories and tasks, for the task-log cascade. */
+export type TaskPickGroup = {
+  mainCategoryId: string;
+  mainCategoryName: string;
+  subcategories: { id: string; name: string }[];
+  directTasks: TaskOption[];
+  tasksBySubcategory: Record<string, TaskOption[]>;
 };

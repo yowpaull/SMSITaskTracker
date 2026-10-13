@@ -18,8 +18,7 @@ import { getTaskLog } from "@/lib/data/task-logs";
 import {
   listBrands,
   listMembers,
-  listTaskDefinitions,
-  groupDefinitionsByCategory,
+  listTaskPickGroups,
 } from "@/lib/data/masters";
 import { formatDateTime } from "@/lib/format";
 import { updateTaskLog } from "@/lib/actions/task-logs";
@@ -37,9 +36,9 @@ async function TaskLogEditContent({
   const profile = await requireProfile();
   const isAdmin = profile.role === "admin";
 
-  const [brands, definitions, members] = await Promise.all([
+  const [brands, taskGroups, members] = await Promise.all([
     listBrands(),
-    listTaskDefinitions(),
+    listTaskPickGroups(),
     isAdmin ? listMembers() : Promise.resolve([]),
   ]);
 
@@ -61,7 +60,7 @@ async function TaskLogEditContent({
               label: brand.name,
               value: brand.id,
             }))}
-            definitionGroups={groupDefinitionsByCategory(definitions)}
+            taskGroups={taskGroups}
             members={members.map((member) => ({
               label: member.full_name || member.email,
               value: member.id,
@@ -83,7 +82,13 @@ async function TaskLogEditContent({
             </div>
             <div>
               <p className="text-muted-foreground text-xs">Category</p>
-              <p>{log.task?.category?.name ?? "—"}</p>
+              <p>
+                {log.task?.category
+                  ? log.task.category.parent
+                    ? `${log.task.category.parent.name} / ${log.task.category.name}`
+                    : log.task.category.name
+                  : "—"}
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground text-xs">Brand</p>

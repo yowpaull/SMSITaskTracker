@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireProfile } from "@/lib/auth";
-import { listCategoriesWithTasks } from "@/lib/data/masters";
+import { listCategoryHierarchy, type TaskLite } from "@/lib/data/masters";
 import { toggleCategoryActive } from "@/lib/actions/categories";
 import { toggleTaskActive } from "@/lib/actions/task-definitions";
 
@@ -36,10 +36,98 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   );
 }
 
+function TaskRows({ tasks, isAdmin }: { tasks: TaskLite[]; isAdmin: boolean }) {
+  if (tasks.length === 0) {
+    return <p className="text-muted-foreground text-sm">No tasks yet.</p>;
+  }
+  return (
+    <ul className="divide-border divide-y rounded-md border border-border">
+      {tasks.map((task) => (
+        <li
+          key={task.id}
+          className="flex items-center justify-between gap-3 px-3 py-2"
+        >
+          <span
+            className={
+              task.is_active
+                ? "font-medium"
+                : "text-muted-foreground font-medium line-through"
+            }
+          >
+            {task.name}
+          </span>
+          <span className="flex items-center gap-2">
+            <StatusBadge isActive={task.is_active} />
+            {isAdmin && (
+              <ActionForm action={toggleTaskActive.bind(null, task.id)}>
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground h-7 px-2 text-xs"
+                >
+                  {task.is_active ? "Deactivate" : "Activate"}
+                </Button>
+              </ActionForm>
+            )}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TaskSection({
+  title,
+  isActive,
+  tasks,
+  categoryId,
+  categoryName,
+  isAdmin,
+}: {
+  title: string;
+  /** Undefined for a main category's own task list (the main toggles above). */
+  isActive?: boolean;
+  tasks: TaskLite[];
+  categoryId: string;
+  categoryName: string;
+  isAdmin: boolean;
+}) {
+  return (
+    <div className="grid gap-2 rounded-md border border-border p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="font-medium text-sm">{title}</span>
+          {isActive !== undefined && <StatusBadge isActive={isActive} />}
+          <span className="text-muted-foreground text-xs font-normal">
+            {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
+          </span>
+        </span>
+        <span className="flex items-center gap-2">
+          <AddTaskDialog categoryId={categoryId} categoryName={categoryName} />
+          {isAdmin && isActive !== undefined && (
+            <ActionForm action={toggleCategoryActive.bind(null, categoryId)}>
+              <Button
+                type="submit"
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground h-7 px-2 text-xs"
+              >
+                {isActive ? "Deactivate" : "Activate"}
+              </Button>
+            </ActionForm>
+          )}
+        </span>
+      </div>
+      <TaskRows tasks={tasks} isAdmin={isAdmin} />
+    </div>
+  );
+}
+
 async function CreateTaskContent() {
   const profile = await requireProfile();
   const isAdmin = profile.role === "admin";
-  const categories = await listCategoriesWithTasks();
+  const categories = await listCategoryHierarchy();
 
   return (
     <Card>
@@ -60,8 +148,13 @@ async function CreateTaskContent() {
                     <span className="font-medium">{category.name}</span>
                     <StatusBadge isActive={category.is_active} />
                     <span className="text-muted-foreground text-xs font-normal">
-                      {category.tasks.length}{" "}
-                      {category.tasks.length === 1 ? "task" : "tasks"}
+                      {category.taskCount}{" "}
+                      {category.taskCount === 1 ? "task" : "tasks"}
+                      {" · "}
+                      {category.subcategories.length}{" "}
+                      {category.subcategories.length === 1
+                        ? "subcategory"
+                        : "subcategories"}
                     </span>
                   </span>
                 </AccordionTrigger>
@@ -71,51 +164,39 @@ async function CreateTaskContent() {
                       {category.short_description}
                     </p>
                   )}
-                  {category.tasks.length === 0 ? (
+                  {category.subcategories.length === 0 &&
+                  category.directTasks.length === 0 ? (
                     <p className="text-muted-foreground">
-                      No tasks in this category yet.
+                      No subcategories or tasks in this category yet.
                     </p>
                   ) : (
-                    <ul className="divide-border divide-y rounded-md border border-border">
-                      {category.tasks.map((task) => (
-                        <li
-                          key={task.id}
-                          className="flex items-center justify-between gap-3 px-3 py-2"
-                        >
-                          <span
-                            className={
-                              task.is_active
-                                ? "font-medium"
-                                : "text-muted-foreground font-medium line-through"
-                            }
-                          >
-                            {task.name}
-                          </span>
-                          <span className="flex items-center gap-2">
-                            <StatusBadge isActive={task.is_active} />
-                            {isAdmin && (
-                              <ActionForm
-                                action={toggleTaskActive.bind(null, task.id)}
-                              >
-                                <Button
-                                  type="submit"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-muted-foreground h-7 px-2 text-xs"
-                                >
-                                  {task.is_active ? "Deactivate" : "Activate"}
-                                </Button>
-                              </ActionForm>
-                            )}
-                          </span>
-                        </li>
+                    <div className="grid gap-3">
+                      {category.subcategories.map((subcategory) => (
+                        <TaskSection
+                          key={subcategory.id}
+                          title={subcategory.name}
+                          isActive={subcategory.is_active}
+                          tasks={subcategory.tasks}
+                          categoryId={subcategory.id}
+                          categoryName={subcategory.name}
+                          isAdmin={isAdmin}
+                        />
                       ))}
-                    </ul>
+                      {category.directTasks.length > 0 && (
+                        <TaskSection
+                          title="No subcategory"
+                          tasks={category.directTasks}
+                          categoryId={category.id}
+                          categoryName={category.name}
+                          isAdmin={isAdmin}
+                        />
+                      )}
+                    </div>
                   )}
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <AddTaskDialog
-                      categoryId={category.id}
-                      categoryName={category.name}
+                    <AddCategoryDialog
+                      parentId={category.id}
+                      parentName={category.name}
                     />
                     {isAdmin && (
                       <ActionForm
@@ -166,7 +247,7 @@ export default function CreateTaskPage() {
     <div className="grid gap-4">
       <PageHeader
         title="Create Task"
-        description="Add categories, then add tasks inside each category. Everyone can add; admins manage activation."
+        description="Main categories → subcategories → tasks. Everyone can add; only admins can edit or deactivate."
         action={<AddCategoryDialog />}
       />
       <Suspense fallback={<CreateTaskSkeleton />}>

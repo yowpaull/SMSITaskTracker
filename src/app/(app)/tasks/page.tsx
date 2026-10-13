@@ -23,7 +23,12 @@ import {
   TASK_LOG_PAGE_SIZE,
   listTaskLogs,
 } from "@/lib/data/task-logs";
-import { listBrands, listCategories, listMembers } from "@/lib/data/masters";
+import {
+  categoryLabel,
+  listBrands,
+  listCategories,
+  listMembers,
+} from "@/lib/data/masters";
 import { TASK_STATUSES, type TaskStatus } from "@/lib/status";
 
 type Params = Record<string, string | string[] | undefined>;
@@ -129,7 +134,7 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
     value: brand.id,
   }));
   const categoryOptions: OptionItem[] = categories.map((category) => ({
-    label: category.name,
+    label: categoryLabel(category),
     value: category.id,
   }));
 

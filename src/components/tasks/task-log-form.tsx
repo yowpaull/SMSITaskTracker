@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useActionState, useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useActionState,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,6 +22,7 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -25,6 +30,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { toDateInputValue } from "@/lib/format";
 import { STATUS_LABELS, TASK_STATUSES, type TaskStatus } from "@/lib/status";
 import type { OptionItem } from "@/components/tasks/task-filters";
+import type { DefinitionGroup } from "@/lib/types";
 import type { TaskLogActionState } from "@/lib/actions/task-logs";
 import { useResultToast } from "@/hooks/use-result-toast";
 
@@ -44,7 +50,7 @@ export function TaskLogForm({
   mode,
   isAdmin,
   brands,
-  definitions,
+  definitionGroups,
   members,
   initial,
   defaultAssigneeId,
@@ -57,21 +63,17 @@ export function TaskLogForm({
   mode: "create" | "update";
   isAdmin: boolean;
   brands: OptionItem[];
-  definitions: OptionItem[];
+  definitionGroups: DefinitionGroup[];
   members: OptionItem[];
   initial?: InitialLog;
   defaultAssigneeId?: string;
   cancelHref?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
-  const router = useRouter();
   useResultToast(state);
 
-  useEffect(() => {
-    if (mode === "create" && state?.success) {
-      router.push("/tasks");
-    }
-  }, [state, mode, router]);
+  const formRef = useRef<HTMLFormElement>(null);
+
   const [taskId, setTaskId] = useState<string | null>(
     initial?.task_id ?? null,
   );
@@ -87,7 +89,27 @@ export function TaskLogForm({
   const [urgent, setUrgent] = useState(initial?.urgent ?? false);
   const [important, setImportant] = useState(initial?.important ?? false);
 
-  const taskItems = [{ label: "Select a task…", value: null }, ...definitions];
+  // Next.js keeps this page mounted (hidden) between navigations, so a
+  // create-mode form would reappear with last visit's selections. Start
+  // each visit fresh (the create action now redirects on success).
+  useLayoutEffect(() => {
+    if (mode !== "create") return;
+    const form = formRef.current;
+    return () => {
+      form?.requestFormReset();
+      setTaskId(null);
+      setBrandId(null);
+      setStatus("pending");
+      setAssigneeId(defaultAssigneeId ?? null);
+      setUrgent(false);
+      setImportant(false);
+    };
+  }, [mode, defaultAssigneeId]);
+
+  const taskItems = [
+    { label: "Select a task…", value: null },
+    ...definitionGroups.flatMap((group) => group.tasks),
+  ];
   const brandItems = [{ label: "Select a brand…", value: null }, ...brands];
   const statusItems = TASK_STATUSES.map((value) => ({
     label: STATUS_LABELS[value],
@@ -98,11 +120,11 @@ export function TaskLogForm({
     ...members,
   ];
 
-  const noDefinitions = definitions.length === 0;
+  const noDefinitions = definitionGroups.length === 0;
   const noBrands = brands.length === 0;
 
   return (
-    <form action={formAction} className="grid max-w-xl gap-4">
+    <form ref={formRef} action={formAction} className="grid max-w-xl gap-4">
       {state?.error && (
         <Alert variant="destructive">
           <AlertDescription>{state.error}</AlertDescription>
@@ -115,7 +137,7 @@ export function TaskLogForm({
 
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="task-select">Task definition</FieldLabel>
+          <FieldLabel htmlFor="task-select">Task</FieldLabel>
           <Select
             items={taskItems}
             value={taskId}
@@ -127,12 +149,20 @@ export function TaskLogForm({
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               <SelectGroup>
-                {taskItems.map((item) => (
-                  <SelectItem key={item.value ?? "placeholder"} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
+                <SelectItem value={null}>Select a task…</SelectItem>
               </SelectGroup>
+              {definitionGroups.map((group) => (
+                <SelectGroup key={group.categoryName}>
+                  <SelectLabel className="font-semibold text-primary">
+                    {group.categoryName}
+                  </SelectLabel>
+                  {group.tasks.map((task) => (
+                    <SelectItem key={task.value} value={task.value}>
+                      {task.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
             </SelectContent>
           </Select>
           <input type="hidden" name="task_id" value={taskId ?? ""} />

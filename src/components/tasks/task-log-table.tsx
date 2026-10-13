@@ -33,6 +33,7 @@ export function TaskLogTable({
             <TableHead>Status</TableHead>
             <TableHead>Priority</TableHead>
             <TableHead>Deadline</TableHead>
+            <TableHead>Date Created</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -66,6 +67,9 @@ export function TaskLogTable({
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 {formatDate(log.deadline)}
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-muted-foreground">
+                {formatDate(log.created_at)}
               </TableCell>
               <TableCell className="whitespace-nowrap text-right">
                 <div className="flex items-center justify-end gap-1">

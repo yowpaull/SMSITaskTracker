@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -63,9 +64,12 @@ export async function createTaskLog(
     return { error: `Could not create task log: ${error.message}` };
   }
 
+  // Redirect instead of returning a success state: a success value would
+  // live on in the form's client state (Next.js preserves the hidden page
+  // between visits) and replay the toast/redirect on the next visit.
   revalidatePath("/tasks");
   revalidatePath("/dashboard");
-  return { success: "Task log created." };
+  redirect("/tasks?created=1");
 }
 
 export async function updateTaskLog(

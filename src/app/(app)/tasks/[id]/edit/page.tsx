@@ -19,6 +19,7 @@ import {
   listBrands,
   listMembers,
   listTaskDefinitions,
+  groupDefinitionsByCategory,
 } from "@/lib/data/masters";
 import { formatDateTime } from "@/lib/format";
 import { updateTaskLog } from "@/lib/actions/task-logs";
@@ -60,12 +61,7 @@ async function TaskLogEditContent({
               label: brand.name,
               value: brand.id,
             }))}
-            definitions={definitions.map((definition) => ({
-              label: definition.category
-                ? `${definition.name} · ${definition.category.name}`
-                : definition.name,
-              value: definition.id,
-            }))}
+            definitionGroups={groupDefinitionsByCategory(definitions)}
             members={members.map((member) => ({
               label: member.full_name || member.email,
               value: member.id,

@@ -13,6 +13,7 @@ import {
   listCategories,
   listMembers,
   listTaskDefinitions,
+  groupDefinitionsByCategory,
 } from "@/lib/data/masters";
 import { createTaskLog } from "@/lib/actions/task-logs";
 
@@ -70,12 +71,7 @@ async function NewTaskLogContent() {
       isAdmin={isAdmin}
       defaultAssigneeId={profile.id}
       brands={brands.map((brand) => ({ label: brand.name, value: brand.id }))}
-      definitions={definitions.map((definition) => ({
-        label: definition.category
-          ? `${definition.name} · ${definition.category.name}`
-          : definition.name,
-        value: definition.id,
-      }))}
+      definitionGroups={groupDefinitionsByCategory(definitions)}
       members={members.map((member) => ({
         label: member.full_name || member.email,
         value: member.id,

@@ -22,6 +22,8 @@ export type TaskFilterValues = {
   categoryId?: string;
   assignedTo?: string;
   q?: string;
+  from?: string;
+  to?: string;
 };
 
 export type OptionItem = { label: string; value: string };
@@ -49,6 +51,8 @@ export function TaskFilters({
     if (next.categoryId) params.set("category", next.categoryId);
     if (next.assignedTo) params.set("assignee", next.assignedTo);
     if (next.q) params.set("q", next.q);
+    if (next.from) params.set("from", next.from);
+    if (next.to) params.set("to", next.to);
     const qs = params.toString();
     router.replace(qs ? `/tasks?${qs}` : "/tasks", { scroll: false });
   }
@@ -180,11 +184,32 @@ export function TaskFilters({
         </Select>
       )}
 
+      <Input
+        type="date"
+        value={filters.from ?? ""}
+        onChange={(event) =>
+          apply({ ...filters, from: event.target.value || undefined })
+        }
+        aria-label="Created from"
+        className="h-7 w-32 text-xs"
+      />
+      <Input
+        type="date"
+        value={filters.to ?? ""}
+        onChange={(event) =>
+          apply({ ...filters, to: event.target.value || undefined })
+        }
+        aria-label="Created to"
+        className="h-7 w-32 text-xs"
+      />
+
       {(filters.status ||
         filters.brandId ||
         filters.categoryId ||
         filters.assignedTo ||
-        filters.q) && (
+        filters.q ||
+        filters.from ||
+        filters.to) && (
         <Button
           type="button"
           variant="ghost"

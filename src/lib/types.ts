@@ -67,4 +67,11 @@ export type TaskLogFilters = {
   categoryId?: string;
   assignedTo?: string;
   q?: string;
+  from?: string;
+  to?: string;
+};
+
+export type DefinitionGroup = {
+  categoryName: string;
+  tasks: { label: string; value: string }[];
 };

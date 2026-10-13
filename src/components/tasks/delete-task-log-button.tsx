@@ -31,14 +31,18 @@ export function DeleteTaskLogButton({
 
   function handleDelete() {
     startTransition(async () => {
-      const result = await deleteTaskLog(logId);
-      if (result?.error) {
-        toast.error(result.error);
-        return;
+      try {
+        const result = await deleteTaskLog(logId);
+        if (result?.error) {
+          toast.error(result.error);
+          return;
+        }
+        toast.success(result?.success ?? "Task log deleted.");
+        setOpen(false);
+        router.refresh();
+      } catch {
+        toast.error("Something went wrong while deleting the task log.");
       }
-      toast.success(result?.success ?? "Task log deleted.");
-      setOpen(false);
-      router.refresh();
     });
   }
 

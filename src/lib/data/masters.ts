@@ -1,6 +1,12 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { Brand, Category, Profile, TaskDefinition } from "@/lib/types";
+import type {
+  Brand,
+  Category,
+  DefinitionGroup,
+  Profile,
+  TaskDefinition,
+} from "@/lib/types";
 
 export async function listBrands(onlyActive = false) {
   const supabase = await createClient();
@@ -53,6 +59,28 @@ export async function listTaskDefinitions(onlyActive = false) {
 export type TaskDefinitionWithCategory = TaskDefinition & {
   category: { id: string; name: string } | null;
 };
+
+/** Group active task definitions under their (non-selectable) category headers. */
+export function groupDefinitionsByCategory(
+  definitions: TaskDefinitionWithCategory[],
+): DefinitionGroup[] {
+  const groups = new Map<string, DefinitionGroup>();
+  for (const definition of definitions) {
+    const categoryName = definition.category?.name ?? "Uncategorized";
+    let group = groups.get(categoryName);
+    if (!group) {
+      group = { categoryName, tasks: [] };
+      groups.set(categoryName, group);
+    }
+    group.tasks.push({ label: definition.name, value: definition.id });
+  }
+  for (const group of groups.values()) {
+    group.tasks.sort((a, b) => a.label.localeCompare(b.label));
+  }
+  return [...groups.values()].sort((a, b) =>
+    a.categoryName.localeCompare(b.categoryName),
+  );
+}
 
 export async function listMembers() {
   const supabase = await createClient();

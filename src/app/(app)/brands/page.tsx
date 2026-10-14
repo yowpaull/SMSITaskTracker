@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { ActionForm } from "@/components/shared/action-form";
 import { CreateBrandForm } from "@/components/brands/create-brand-form";
@@ -24,8 +25,6 @@ import { listBrands } from "@/lib/data/masters";
 import { toggleBrandActive } from "@/lib/actions/brands";
 
 async function BrandsContent() {
-  const profile = await requireProfile();
-  const isAdmin = profile.role === "admin";
   const brands = await listBrands();
 
   return (
@@ -37,10 +36,7 @@ async function BrandsContent() {
         <CardContent>
           {brands.length === 0 ? (
             <p className="text-muted-foreground text-sm">
-              No brands yet.
-              {isAdmin
-                ? " Add the first one."
-                : " An admin must add a brand."}
+              No brands yet. Add the first one.
             </p>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border">
@@ -49,7 +45,7 @@ async function BrandsContent() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Status</TableHead>
-                    {isAdmin && <TableHead className="w-28" />}
+                    <TableHead className="w-28" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -73,17 +69,15 @@ async function BrandsContent() {
                           </Badge>
                         )}
                       </TableCell>
-                      {isAdmin && (
-                        <TableCell>
-                          <ActionForm
-                            action={toggleBrandActive.bind(null, brand.id)}
-                          >
-                            <Button type="submit" variant="outline" size="sm">
-                              {brand.is_active ? "Deactivate" : "Activate"}
-                            </Button>
-                          </ActionForm>
-                        </TableCell>
-                      )}
+                      <TableCell>
+                        <ActionForm
+                          action={toggleBrandActive.bind(null, brand.id)}
+                        >
+                          <Button type="submit" variant="outline" size="sm">
+                            {brand.is_active ? "Deactivate" : "Activate"}
+                          </Button>
+                        </ActionForm>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -93,20 +87,7 @@ async function BrandsContent() {
         </CardContent>
       </Card>
 
-      {isAdmin ? (
-        <CreateBrandForm />
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Add brand</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-sm">
-              Only admins can add or deactivate brands.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      <CreateBrandForm />
     </div>
   );
 }
@@ -115,9 +96,7 @@ function BrandsSkeleton() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" aria-busy="true">
       <Card>
-        <CardHeader>
-          <Skeleton className="h-4 w-28" />
-        </CardHeader>
+        <Skeleton className="h-4 w-28" />
         <CardContent className="grid gap-2">
           {Array.from({ length: 4 }).map((_, index) => (
             <Skeleton key={index} className="h-10 w-full" />
@@ -125,9 +104,7 @@ function BrandsSkeleton() {
         </CardContent>
       </Card>
       <Card>
-        <CardHeader>
-          <Skeleton className="h-4 w-24" />
-        </CardHeader>
+        <Skeleton className="h-4 w-24" />
         <CardContent className="grid gap-3">
           <Skeleton className="h-7 w-full" />
           <Skeleton className="h-7 w-28" />
@@ -139,12 +116,15 @@ function BrandsSkeleton() {
 
 export const instant = false;
 
-export default function BrandsPage() {
+export default async function BrandsPage() {
+  const profile = await requireProfile();
+  if (profile.role !== "admin") redirect("/tasks");
+
   return (
     <div className="grid gap-4">
       <PageHeader
         title="Brands"
-        description="Task logs are recorded per brand. Admins manage the brand list."
+        description="Task logs are recorded per brand. Manage the brand list here."
       />
       <Suspense fallback={<BrandsSkeleton />}>
         <BrandsContent />

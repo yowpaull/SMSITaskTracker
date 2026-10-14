@@ -317,7 +317,7 @@ export function TaskLogForm({
           <input type="hidden" name="brand_id" value={brandId ?? ""} />
           {noBrands && (
             <p className="text-destructive text-xs">
-              No active brands. Ask an admin to add one on the Brands page.
+              No active brands. Ask an admin to add one.
             </p>
           )}
         </Field>
@@ -386,11 +386,14 @@ export function TaskLogForm({
         )}
 
         <Field>
-          <FieldLabel htmlFor="deadline">Deadline (optional)</FieldLabel>
+          <FieldLabel htmlFor="deadline">
+            {mode === "create" ? "Deadline" : "Deadline (optional)"}
+          </FieldLabel>
           <Input
             id="deadline"
             name="deadline"
             type="date"
+            required={mode === "create"}
             defaultValue={toDateInputValue(initial?.deadline)}
           />
         </Field>

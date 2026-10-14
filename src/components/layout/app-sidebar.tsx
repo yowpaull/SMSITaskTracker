@@ -71,7 +71,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              render={<Link href="/dashboard" />}
+              render={<Link href="/tasks" />}
               tooltip="Task Tracker"
             >
               <SquareCheckBigIcon />

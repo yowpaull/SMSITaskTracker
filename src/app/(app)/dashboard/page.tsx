@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { redirect } from "next/navigation";
 import { MetricCards, MetricCardsSkeleton } from "@/components/metrics/metric-cards";
 import { PageHeader } from "@/components/shared/page-header";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskLogTable } from "@/components/tasks/task-log-table";
+import { requireProfile } from "@/lib/auth";
 import {
   getDashboardMetrics,
   listRecentTaskLogs,
@@ -68,7 +70,10 @@ function DashboardSkeleton() {
 
 export const instant = false;
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const profile = await requireProfile();
+  if (profile.role !== "admin") redirect("/tasks");
+
   return (
     <div className="grid gap-6">
       <PageHeader
@@ -81,5 +86,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-// probe2

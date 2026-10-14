@@ -31,7 +31,7 @@ export async function createTaskLog(
     task_id: formDataValue(formData, "task_id"),
     brand_id: formDataValue(formData, "brand_id"),
     assigned_to: formDataValue(formData, "assigned_to"),
-    deadline: parseDeadline(formData.get("deadline")) ?? undefined,
+    deadline: formDataValue(formData, "deadline"),
     urgent: formChecked(formData, "urgent"),
     important: formChecked(formData, "important"),
   });
@@ -57,7 +57,7 @@ export async function createTaskLog(
     status: "pending",
     urgent: parsed.data.urgent,
     important: parsed.data.important,
-    deadline: parsed.data.deadline ?? null,
+    deadline: parseDeadline(parsed.data.deadline),
   });
 
   if (error) {

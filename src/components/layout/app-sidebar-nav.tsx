@@ -16,10 +16,20 @@ import {
 } from "@/components/ui/sidebar";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboardIcon,
+    adminOnly: true,
+  },
   { href: "/tasks", label: "Tasks", icon: ListChecksIcon },
   { href: "/create-task", label: "Create Task", icon: ListPlusIcon },
-  { href: "/brands", label: "Brands", icon: BuildingIcon },
+  {
+    href: "/brands",
+    label: "Brands",
+    icon: BuildingIcon,
+    adminOnly: true,
+  },
   {
     href: "/members",
     label: "Members",

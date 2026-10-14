@@ -1,4 +1,5 @@
 import "server-only";
+import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { TaskLogFilters, TaskLogWithRelations } from "@/lib/types";
 
@@ -113,10 +114,15 @@ export type DashboardMetrics = {
   delayed: number;
 };
 
-export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+export async function getDashboardMetrics(assignedTo?: string): Promise<DashboardMetrics> {
   const supabase = await createClient();
-  const base = () =>
-    supabase.from("task_logs").select("id", { count: "exact", head: true });
+  const base = () => {
+    let query = supabase
+      .from("task_logs")
+      .select("id", { count: "exact", head: true });
+    if (assignedTo) query = query.eq("assigned_to", assignedTo);
+    return query;
+  };
 
   const [total, pending, inProgress, completed, cancelled, delayed] =
     await Promise.all([
@@ -145,4 +151,20 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     cancelled: cancelled.count ?? 0,
     delayed: delayed.count ?? 0,
   };
+}
+
+export type MyTaskStats = DashboardMetrics & {
+  /** Share of the user's logs that are completed, 0–100. */
+  progressPercent: number;
+};
+
+/** Status counts + overall progress for the signed-in user's own task logs. */
+export async function getMyTaskStats(): Promise<MyTaskStats> {
+  const user = await requireUser();
+  const metrics = await getDashboardMetrics(user.id);
+  const progressPercent =
+    metrics.total === 0
+      ? 0
+      : Math.round((metrics.completed / metrics.total) * 100);
+  return { ...metrics, progressPercent };
 }

@@ -18,10 +18,13 @@ import {
 import { ExportTaskLogsButton } from "@/components/tasks/export-task-logs-button";
 import { TaskLogTable } from "@/components/tasks/task-log-table";
 import { CreatedFlash } from "@/components/tasks/created-flash";
+import { MyProgressCards } from "@/components/metrics/my-progress-cards";
 import { requireProfile } from "@/lib/auth";
 import {
   TASK_LOG_PAGE_SIZE,
+  getMyTaskStats,
   listTaskLogs,
+  type MyTaskStats,
 } from "@/lib/data/task-logs";
 import {
   listBrands,
@@ -116,11 +119,19 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
   const profile = await requireProfile();
   const isAdmin = profile.role === "admin";
 
-  const [result, brands, subcategories, members] = await Promise.all([
+  const [result, brands, subcategories, members, myStats]: [
+    Awaited<ReturnType<typeof listTaskLogs>>,
+    Awaited<ReturnType<typeof listBrands>>,
+    Awaited<ReturnType<typeof listSubcategoriesWithLabels>>,
+    Awaited<ReturnType<typeof listMembers>>,
+    MyTaskStats | null,
+  ] = await Promise.all([
     listTaskLogs(filters, page),
     listBrands(true),
     listSubcategoriesWithLabels(true),
     listMembers(),
+    // Non-admins see KPIs for their own logs; admins use the dashboard.
+    isAdmin ? Promise.resolve(null) : getMyTaskStats(),
   ]);
 
   // Non-admins only see their own logs; the assignee filter is hidden for them.
@@ -146,6 +157,7 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
   return (
     <div className="grid gap-4">
       {created && <CreatedFlash />}
+      {myStats && <MyProgressCards stats={myStats} />}
       <TaskFilters
         filters={filters}
         brandOptions={brandOptions}

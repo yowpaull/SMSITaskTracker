@@ -7,7 +7,9 @@ export const createTaskLogSchema = z.object({
   task_id: z.uuid("Pick a task definition."),
   brand_id: z.uuid("Pick a brand."),
   assigned_to: z.uuid().optional(),
-  deadline: z.string().optional(),
+  deadline: z
+    .string("Pick a deadline.")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a deadline."),
   urgent: z.boolean(),
   important: z.boolean(),
 });

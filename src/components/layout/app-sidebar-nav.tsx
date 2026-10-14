@@ -13,13 +13,24 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboardIcon,
+    adminOnly: true,
+  },
   { href: "/tasks", label: "Tasks", icon: ListChecksIcon },
   { href: "/create-task", label: "Create Task", icon: ListPlusIcon },
-  { href: "/brands", label: "Brands", icon: BuildingIcon },
+  {
+    href: "/brands",
+    label: "Brands",
+    icon: BuildingIcon,
+    adminOnly: true,
+  },
   {
     href: "/members",
     label: "Members",
@@ -30,6 +41,7 @@ const NAV_ITEMS = [
 
 export function AppSidebarNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
 
   return (
     <SidebarMenu>
@@ -44,6 +56,7 @@ export function AppSidebarNav({ isAdmin }: { isAdmin: boolean }) {
               render={<Link href={item.href} />}
               isActive={active}
               tooltip={item.label}
+              onClick={() => setOpenMobile(false)}
             >
               <item.icon />
               {item.label}

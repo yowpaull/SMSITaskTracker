@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { SquareCheckBigIcon } from "lucide-react";
 import { AppSidebarNav } from "@/components/layout/app-sidebar-nav";
+import { SidebarCloseButton } from "@/components/layout/sidebar-close-button";
 import { UserMenu } from "@/components/layout/user-menu";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -68,19 +69,23 @@ export function AppSidebar() {
   return (
     <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              render={<Link href="/dashboard" />}
-              tooltip="Task Tracker"
-            >
-              <SquareCheckBigIcon />
-              <span className="font-semibold tracking-tight">
-                Task Tracker
-              </span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center gap-1">
+          <SidebarMenu className="min-w-0 flex-1">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                render={<Link href="/tasks" />}
+                tooltip="Task Tracker"
+                className="min-w-0"
+              >
+                <SquareCheckBigIcon />
+                <span className="font-semibold tracking-tight">
+                  Task Tracker
+                </span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          <SidebarCloseButton />
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <Suspense fallback={<SidebarNavSkeleton />}>

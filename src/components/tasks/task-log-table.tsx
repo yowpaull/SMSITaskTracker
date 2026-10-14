@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -9,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/format";
 import type { TaskLogWithRelations } from "@/lib/types";
+import { DeleteTaskLogButton } from "./delete-task-log-button";
 import { PriorityBadges } from "./priority-badges";
 import { StatusBadge } from "./status-badge";
 
@@ -31,21 +33,22 @@ export function TaskLogTable({
             <TableHead>Status</TableHead>
             <TableHead>Priority</TableHead>
             <TableHead>Deadline</TableHead>
+            <TableHead>Date Created</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {logs.map((log) => (
             <TableRow key={log.id}>
-              <TableCell>
-                <Link
-                  href={`/tasks/${log.id}`}
-                  className="font-medium text-foreground hover:underline"
-                >
-                  {log.task?.name ?? "Unknown task"}
-                </Link>
+              <TableCell className="font-medium">
+                {log.task?.name ?? "Unknown task"}
               </TableCell>
               <TableCell className="text-muted-foreground">
-                {log.task?.category?.name ?? "—"}
+                {log.task?.subcategory
+                  ? log.task.subcategory.category
+                    ? `${log.task.subcategory.category.name} / ${log.task.subcategory.name}`
+                    : log.task.subcategory.name
+                  : "—"}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {log.brand?.name ?? "—"}
@@ -68,6 +71,33 @@ export function TaskLogTable({
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 {formatDate(log.deadline)}
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-muted-foreground">
+                {formatDate(log.created_at)}
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-right">
+                <div className="flex items-center justify-end gap-1">
+                  <Button
+                    render={<Link href={`/tasks/${log.id}`} />}
+                    nativeButton={false}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    View
+                  </Button>
+                  <Button
+                    render={<Link href={`/tasks/${log.id}/edit`} />}
+                    nativeButton={false}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    Edit
+                  </Button>
+                  <DeleteTaskLogButton
+                    logId={log.id}
+                    taskName={log.task?.name ?? "Unknown task"}
+                  />
+                </div>
               </TableCell>
             </TableRow>
           ))}

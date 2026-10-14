@@ -19,9 +19,11 @@ import { cn } from "@/lib/utils";
 export type TaskFilterValues = {
   status?: TaskStatus;
   brandId?: string;
-  categoryId?: string;
+  subcategoryId?: string;
   assignedTo?: string;
   q?: string;
+  from?: string;
+  to?: string;
 };
 
 export type OptionItem = { label: string; value: string };
@@ -46,9 +48,12 @@ export function TaskFilters({
     const params = new URLSearchParams();
     if (next.status) params.set("status", next.status);
     if (next.brandId) params.set("brand", next.brandId);
-    if (next.categoryId) params.set("category", next.categoryId);
+    // URL param stays "category"; the value is now a subcategory id.
+    if (next.subcategoryId) params.set("category", next.subcategoryId);
     if (next.assignedTo) params.set("assignee", next.assignedTo);
     if (next.q) params.set("q", next.q);
+    if (next.from) params.set("from", next.from);
+    if (next.to) params.set("to", next.to);
     const qs = params.toString();
     router.replace(qs ? `/tasks?${qs}` : "/tasks", { scroll: false });
   }
@@ -134,9 +139,9 @@ export function TaskFilters({
 
       <Select
         items={[{ label: "All categories", value: null }, ...categoryOptions]}
-        value={filters.categoryId ?? null}
+        value={filters.subcategoryId ?? null}
         onValueChange={(value) =>
-          apply({ ...filters, categoryId: value ?? undefined })
+          apply({ ...filters, subcategoryId: value ?? undefined })
         }
       >
         <SelectTrigger size="sm" className="h-7 text-xs">
@@ -180,11 +185,32 @@ export function TaskFilters({
         </Select>
       )}
 
+      <Input
+        type="date"
+        value={filters.from ?? ""}
+        onChange={(event) =>
+          apply({ ...filters, from: event.target.value || undefined })
+        }
+        aria-label="Created from"
+        className="h-7 w-32 text-xs"
+      />
+      <Input
+        type="date"
+        value={filters.to ?? ""}
+        onChange={(event) =>
+          apply({ ...filters, to: event.target.value || undefined })
+        }
+        aria-label="Created to"
+        className="h-7 w-32 text-xs"
+      />
+
       {(filters.status ||
         filters.brandId ||
-        filters.categoryId ||
+        filters.subcategoryId ||
         filters.assignedTo ||
-        filters.q) && (
+        filters.q ||
+        filters.from ||
+        filters.to) && (
         <Button
           type="button"
           variant="ghost"

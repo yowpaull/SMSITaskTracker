@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   createTaskLogSchema,
+  deleteTaskLogSchema,
   formChecked,
   parseDeadline,
   updateTaskLogSchema,
@@ -29,7 +31,7 @@ export async function createTaskLog(
     task_id: formDataValue(formData, "task_id"),
     brand_id: formDataValue(formData, "brand_id"),
     assigned_to: formDataValue(formData, "assigned_to"),
-    deadline: parseDeadline(formData.get("deadline")) ?? undefined,
+    deadline: formDataValue(formData, "deadline"),
     urgent: formChecked(formData, "urgent"),
     important: formChecked(formData, "important"),
   });
@@ -55,16 +57,19 @@ export async function createTaskLog(
     status: "pending",
     urgent: parsed.data.urgent,
     important: parsed.data.important,
-    deadline: parsed.data.deadline ?? null,
+    deadline: parseDeadline(parsed.data.deadline),
   });
 
   if (error) {
     return { error: `Could not create task log: ${error.message}` };
   }
 
+  // Redirect instead of returning a success state: a success value would
+  // live on in the form's client state (Next.js preserves the hidden page
+  // between visits) and replay the toast/redirect on the next visit.
   revalidatePath("/tasks");
   revalidatePath("/dashboard");
-  return { success: "Task log created." };
+  redirect("/tasks?created=1");
 }
 
 export async function updateTaskLog(
@@ -118,5 +123,36 @@ export async function updateTaskLog(
   revalidatePath("/tasks");
   revalidatePath("/dashboard");
   revalidatePath(`/tasks/${parsed.data.id}`);
+  revalidatePath(`/tasks/${parsed.data.id}/edit`);
   return { success: "Task log updated." };
+}
+
+export async function deleteTaskLog(id: string): Promise<ActionResult> {
+  const parsed = deleteTaskLogSchema.safeParse({ id });
+  if (!parsed.success) {
+    return { error: "Invalid task log." };
+  }
+
+  await requireProfile();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("task_logs")
+    .delete()
+    .eq("id", parsed.data.id)
+    .select("id");
+
+  if (error) {
+    return { error: `Could not delete task log: ${error.message}` };
+  }
+
+  if (!data || data.length === 0) {
+    return {
+      error: "Task log not found or you don't have permission to delete it.",
+    };
+  }
+
+  revalidatePath("/tasks");
+  revalidatePath("/dashboard");
+  return { success: "Task log deleted." };
 }

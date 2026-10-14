@@ -25,7 +25,16 @@ Use PostgreSQL through Supabase. Keep identifiers and relationships consistent w
 
 ### `categories`
 - `id uuid` — primary key, default `gen_random_uuid()`
-- `name text` — required and unique
+- `name text` — required and unique (main categories only; the two-level hierarchy lives in `subcategories`)
+- `short_description text` — optional
+- `is_active boolean` — default `true`
+- `created_at timestamptz` — default `now()`
+- `updated_at timestamptz` — default `now()`
+
+### `subcategories`
+- `id uuid` — primary key, default `gen_random_uuid()`
+- `name text` — required; unique within its category (`(category_id, name)`)
+- `category_id uuid` — required foreign key to `categories(id)`
 - `short_description text` — optional
 - `is_active boolean` — default `true`
 - `created_at timestamptz` — default `now()`
@@ -34,7 +43,7 @@ Use PostgreSQL through Supabase. Keep identifiers and relationships consistent w
 ### `tasks`
 - `id uuid` — primary key, default `gen_random_uuid()`
 - `name text` — required
-- `category_id uuid` — required foreign key to `categories(id)`
+- `subcategory_id uuid` — required foreign key to `subcategories(id)`
 - `is_active boolean` — default `true`
 - `created_at timestamptz` — default `now()`
 - `updated_at timestamptz` — default `now()`
@@ -56,7 +65,8 @@ If the existing database uses different column names, inspect the actual schema 
 ## Relationships
 
 - `auth.users.id` → `profiles.id` (one-to-one)
-- `categories.id` → `tasks.category_id` (one-to-many)
+- `categories.id` → `subcategories.category_id` (one-to-many)
+- `subcategories.id` → `tasks.subcategory_id` (one-to-many)
 - `tasks.id` → `task_logs.task_id` (one-to-many)
 - `brands.id` → `task_logs.brand_id` (one-to-many)
 
@@ -75,15 +85,15 @@ The current schema does not include task ownership or assignment. If multi-user 
 9. Keep secrets out of source control. Use environment variables; never expose the Supabase service-role key in client-side code.
 10. Enable Row Level Security (RLS) on tables exposed through the Supabase API and write policies that match the intended roles and data access. Do not assume that checking a role in the UI is sufficient authorization.
 11. Protect the `profiles.role` field. Ordinary users must not be able to promote themselves to `admin`; use trusted server-side logic or restrictive database policies.
-12. Use soft deactivation (`is_active = false`) for brands, categories, and task definitions when historical records may still reference them.
+12. Use soft deactivation (`is_active = false`) for brands, categories, subcategories, and task definitions when historical records may still reference them.
 13. Keep task status values consistent across database constraints, TypeScript types, forms, filters, and dashboard counts.
 14. Add or update tests when changing important behavior. Run the relevant lint, type-check, test, and build scripts available in the project.
 15. Keep the UI simple, responsive, accessible, and consistent with existing design patterns.
 
 ## Task Tracker Behavior
 
-- Categories classify task definitions.
-- Tasks belong to one category.
+- Categories classify subcategories; subcategories classify task definitions.
+- Tasks belong to one subcategory (and therefore one main category).
 - Task logs reference a task definition and a brand, and store the task's status, urgency, importance, deadline, and completion time.
 - A completed task should have `completed_at` populated; when a task is reopened, clear it if that matches the product's intended behavior.
 - Dashboard metrics must be derived from database records and use clearly defined status and date rules.

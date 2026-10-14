@@ -65,6 +65,43 @@ export type Database = {
         }
         Relationships: []
       }
+      subcategories: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          short_description: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          short_description?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          short_description?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcategories_category_id_fkey"
+            columns: ["category_id"]
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -168,35 +205,35 @@ export type Database = {
       }
       tasks: {
         Row: {
-          category_id: string
           created_at: string
           id: string
           is_active: boolean
           name: string
+          subcategory_id: string
           updated_at: string
         }
         Insert: {
-          category_id: string
           created_at?: string
           id?: string
           is_active?: boolean
           name: string
+          subcategory_id: string
           updated_at?: string
         }
         Update: {
-          category_id?: string
           created_at?: string
           id?: string
           is_active?: boolean
           name?: string
+          subcategory_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "tasks_category_id_fkey"
-            columns: ["category_id"]
+            foreignKeyName: "tasks_subcategory_id_fkey"
+            columns: ["subcategory_id"]
             isOneToOne: false
-            referencedRelation: "categories"
+            referencedRelation: "subcategories"
             referencedColumns: ["id"]
           },
         ]

@@ -1,7 +1,10 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { PageHeader } from "@/components/shared/page-header";
+import { Pagination } from "@/components/shared/pagination";
 import { CreateMemberForm } from "@/components/members/create-member-form";
 import { MemberRoleMenu } from "@/components/members/member-role-menu";
+import { MemberSearch } from "@/components/members/member-search";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -19,22 +22,47 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requireAdmin } from "@/lib/auth";
-import { listMembers } from "@/lib/data/masters";
+import { MEMBERS_PAGE_SIZE, searchMembers } from "@/lib/data/masters";
 import { formatDate } from "@/lib/format";
 
-async function MembersContent() {
+type Params = Record<string, string | string[] | undefined>;
+
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+async function MembersContent({ searchParams }: { searchParams: Promise<Params> }) {
+  await connection();
+  const params = await searchParams;
+  const q = first(params.q) || undefined;
+  const pageRaw = Number.parseInt(first(params.page) ?? "1", 10);
+  const page = Number.isNaN(pageRaw) || pageRaw < 1 ? 1 : pageRaw;
+
   const adminProfile = await requireAdmin();
-  const members = await listMembers();
+  const { members, total } = await searchMembers(q, page);
+  const totalPages = Math.max(1, Math.ceil(total / MEMBERS_PAGE_SIZE));
+  const buildHref = (target: number) => {
+    const sp = new URLSearchParams();
+    if (q) sp.set("q", q);
+    if (target > 1) sp.set("page", String(target));
+    const qs = sp.toString();
+    return qs ? `/members?${qs}` : "/members";
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-base">All members</CardTitle>
+          <MemberSearch initialQuery={q ?? ""} />
         </CardHeader>
         <CardContent>
-          {members.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No members yet.</p>
+          {total === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              {q
+                ? `No members match “${q}”.`
+                : "No members yet."}
+            </p>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border">
               <Table>
@@ -108,6 +136,13 @@ async function MembersContent() {
               </Table>
             </div>
           )}
+          <div className="mt-4">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              buildHref={buildHref}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -146,7 +181,11 @@ function MembersSkeleton() {
 
 export const instant = false;
 
-export default function MembersPage() {
+export default function MembersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}) {
   return (
     <div className="grid gap-4">
       <PageHeader
@@ -154,7 +193,7 @@ export default function MembersPage() {
         description="Admins create accounts, manage roles, and deactivate members. There is no self sign-up."
       />
       <Suspense fallback={<MembersSkeleton />}>
-        <MembersContent />
+        <MembersContent searchParams={searchParams} />
       </Suspense>
     </div>
   );

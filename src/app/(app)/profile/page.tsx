@@ -18,8 +18,8 @@ async function ProfileContent() {
   const profile = await requireProfile();
 
   return (
-    <div className="grid max-w-xl gap-4">
-      <Card>
+    <div className="grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <Card className="self-start">
         <CardHeader>
           <CardTitle className="text-base">Your profile</CardTitle>
         </CardHeader>
@@ -55,16 +55,18 @@ async function ProfileContent() {
         </CardContent>
       </Card>
 
-      <EditNameForm initialFullName={profile.full_name} />
-      <ChangePasswordForm />
+      <div className="grid content-start gap-4">
+        <EditNameForm initialFullName={profile.full_name} />
+        <ChangePasswordForm />
+      </div>
     </div>
   );
 }
 
 function ProfileSkeleton() {
   return (
-    <div className="grid max-w-xl gap-4" aria-busy="true">
-      <Card>
+    <div className="grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" aria-busy="true">
+      <Card className="self-start">
         <CardHeader>
           <Skeleton className="h-4 w-28" />
         </CardHeader>
@@ -78,26 +80,28 @@ function ProfileSkeleton() {
           <Skeleton className="h-8 w-24" />
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-4 w-24" />
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          <Skeleton className="h-7 w-full" />
-          <Skeleton className="h-7 w-24" />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-4 w-32" />
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          <Skeleton className="h-7 w-full" />
-          <Skeleton className="h-7 w-full" />
-          <Skeleton className="h-7 w-full" />
-          <Skeleton className="h-7 w-32" />
-        </CardContent>
-      </Card>
+      <div className="grid content-start gap-4">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-4 w-24" />
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <Skeleton className="h-7 w-full" />
+            <Skeleton className="h-7 w-24" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-4 w-32" />
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <Skeleton className="h-7 w-full" />
+            <Skeleton className="h-7 w-full" />
+            <Skeleton className="h-7 w-full" />
+            <Skeleton className="h-7 w-32" />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 export type TaskFilterValues = {
   status?: TaskStatus;
   brandId?: string;
-  categoryId?: string;
+  subcategoryId?: string;
   assignedTo?: string;
   q?: string;
   from?: string;
@@ -48,7 +48,8 @@ export function TaskFilters({
     const params = new URLSearchParams();
     if (next.status) params.set("status", next.status);
     if (next.brandId) params.set("brand", next.brandId);
-    if (next.categoryId) params.set("category", next.categoryId);
+    // URL param stays "category"; the value is now a subcategory id.
+    if (next.subcategoryId) params.set("category", next.subcategoryId);
     if (next.assignedTo) params.set("assignee", next.assignedTo);
     if (next.q) params.set("q", next.q);
     if (next.from) params.set("from", next.from);
@@ -138,9 +139,9 @@ export function TaskFilters({
 
       <Select
         items={[{ label: "All categories", value: null }, ...categoryOptions]}
-        value={filters.categoryId ?? null}
+        value={filters.subcategoryId ?? null}
         onValueChange={(value) =>
-          apply({ ...filters, categoryId: value ?? undefined })
+          apply({ ...filters, subcategoryId: value ?? undefined })
         }
       >
         <SelectTrigger size="sm" className="h-7 text-xs">
@@ -205,7 +206,7 @@ export function TaskFilters({
 
       {(filters.status ||
         filters.brandId ||
-        filters.categoryId ||
+        filters.subcategoryId ||
         filters.assignedTo ||
         filters.q ||
         filters.from ||

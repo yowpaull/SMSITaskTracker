@@ -24,9 +24,8 @@ import {
   listTaskLogs,
 } from "@/lib/data/task-logs";
 import {
-  categoryLabel,
   listBrands,
-  listCategories,
+  listSubcategoriesWithLabels,
   listMembers,
 } from "@/lib/data/masters";
 import { TASK_STATUSES, type TaskStatus } from "@/lib/status";
@@ -55,7 +54,8 @@ function parseFilters(params: Params): {
     filters: {
       status,
       brandId: first(params.brand),
-      categoryId: first(params.category),
+      // URL param stays "category"; the value is a subcategory id.
+      subcategoryId: first(params.category),
       assignedTo: first(params.assignee),
       q: first(params.q),
       from: parseDateParam(first(params.from)),
@@ -72,7 +72,7 @@ function buildHref(
   const search = new URLSearchParams();
   if (params.status) search.set("status", params.status);
   if (params.brandId) search.set("brand", params.brandId);
-  if (params.categoryId) search.set("category", params.categoryId);
+  if (params.subcategoryId) search.set("category", params.subcategoryId);
   if (params.assignedTo) search.set("assignee", params.assignedTo);
   if (params.q) search.set("q", params.q);
   if (params.from) search.set("from", params.from);
@@ -116,10 +116,10 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
   const profile = await requireProfile();
   const isAdmin = profile.role === "admin";
 
-  const [result, brands, categories, members] = await Promise.all([
+  const [result, brands, subcategories, members] = await Promise.all([
     listTaskLogs(filters, page),
     listBrands(true),
-    listCategories(true),
+    listSubcategoriesWithLabels(true),
     listMembers(),
   ]);
 
@@ -133,9 +133,9 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
     label: brand.name,
     value: brand.id,
   }));
-  const categoryOptions: OptionItem[] = categories.map((category) => ({
-    label: categoryLabel(category),
-    value: category.id,
+  const categoryOptions: OptionItem[] = subcategories.map((subcategory) => ({
+    label: subcategory.label,
+    value: subcategory.id,
   }));
 
   const totalPages = Math.max(
@@ -169,7 +169,7 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
             <EmptyDescription>
               {filters.status ||
               filters.brandId ||
-              filters.categoryId ||
+              filters.subcategoryId ||
               filters.assignedTo ||
               filters.q ||
               filters.from ||

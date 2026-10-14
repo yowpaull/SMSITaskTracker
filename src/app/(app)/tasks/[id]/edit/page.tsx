@@ -83,10 +83,10 @@ async function TaskLogEditContent({
             <div>
               <p className="text-muted-foreground text-xs">Category</p>
               <p>
-                {log.task?.category
-                  ? log.task.category.parent
-                    ? `${log.task.category.parent.name} / ${log.task.category.name}`
-                    : log.task.category.name
+                {log.task?.subcategory
+                  ? log.task.subcategory.category
+                    ? `${log.task.subcategory.category.name} / ${log.task.subcategory.name}`
+                    : log.task.subcategory.name
                   : "—"}
               </p>
             </div>

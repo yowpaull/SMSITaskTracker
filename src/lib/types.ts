@@ -22,7 +22,16 @@ export type Category = {
   name: string;
   short_description: string | null;
   is_active: boolean;
-  parent_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Subcategory = {
+  id: string;
+  category_id: string;
+  name: string;
+  short_description: string | null;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -30,7 +39,7 @@ export type Category = {
 export type TaskDefinition = {
   id: string;
   name: string;
-  category_id: string;
+  subcategory_id: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -55,12 +64,12 @@ export type TaskLogWithRelations = TaskLog & {
   task: {
     id: string;
     name: string;
-    category_id: string;
-    category: {
+    subcategory_id: string;
+    subcategory: {
       id: string;
       name: string;
-      parent_id: string | null;
-      parent: { id: string; name: string } | null;
+      category_id: string;
+      category: { id: string; name: string } | null;
     } | null;
   } | null;
   brand: { id: string; name: string } | null;
@@ -70,7 +79,8 @@ export type TaskLogWithRelations = TaskLog & {
 export type TaskLogFilters = {
   status?: TaskStatus;
   brandId?: string;
-  categoryId?: string;
+  /** Subcategory id (filter dropdown lists subcategories as "Main / Sub"). */
+  subcategoryId?: string;
   assignedTo?: string;
   q?: string;
   from?: string;
@@ -83,7 +93,5 @@ export type TaskOption = { label: string; value: string };
 export type TaskPickGroup = {
   mainCategoryId: string;
   mainCategoryName: string;
-  subcategories: { id: string; name: string }[];
-  directTasks: TaskOption[];
-  tasksBySubcategory: Record<string, TaskOption[]>;
+  subcategories: { id: string; name: string; tasks: TaskOption[] }[];
 };

@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/shared/page-header";
 import { ActionForm } from "@/components/shared/action-form";
 import { AddCategoryDialog } from "@/components/create-task/add-category-dialog";
 import { AddTaskDialog } from "@/components/create-task/add-task-dialog";
+import { EditCategoryDialog } from "@/components/create-task/edit-category-dialog";
+import { EditTaskDialog } from "@/components/create-task/edit-task-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,8 +16,15 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireProfile } from "@/lib/auth";
-import { listCategoryHierarchy, type TaskLite } from "@/lib/data/masters";
-import { toggleCategoryActive } from "@/lib/actions/categories";
+import {
+  listCategoryHierarchy,
+  listSubcategoriesWithLabels,
+  type TaskLite,
+} from "@/lib/data/masters";
+import {
+  toggleCategoryActive,
+  toggleSubcategoryActive,
+} from "@/lib/actions/categories";
 import { toggleTaskActive } from "@/lib/actions/task-definitions";
 
 function StatusBadge({ isActive }: { isActive: boolean }) {
@@ -36,7 +45,15 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   );
 }
 
-function TaskRows({ tasks, isAdmin }: { tasks: TaskLite[]; isAdmin: boolean }) {
+function TaskRows({
+  tasks,
+  isAdmin,
+  subcategoryOptions,
+}: {
+  tasks: TaskLite[];
+  isAdmin: boolean;
+  subcategoryOptions: { label: string; value: string }[];
+}) {
   if (tasks.length === 0) {
     return <p className="text-muted-foreground text-sm">No tasks yet.</p>;
   }
@@ -59,16 +76,22 @@ function TaskRows({ tasks, isAdmin }: { tasks: TaskLite[]; isAdmin: boolean }) {
           <span className="flex items-center gap-2">
             <StatusBadge isActive={task.is_active} />
             {isAdmin && (
-              <ActionForm action={toggleTaskActive.bind(null, task.id)}>
-                <Button
-                  type="submit"
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground h-7 px-2 text-xs"
-                >
-                  {task.is_active ? "Deactivate" : "Activate"}
-                </Button>
-              </ActionForm>
+              <>
+                <EditTaskDialog
+                  task={task}
+                  subcategoryOptions={subcategoryOptions}
+                />
+                <ActionForm action={toggleTaskActive.bind(null, task.id)}>
+                  <Button
+                    type="submit"
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground h-7 px-2 text-xs"
+                  >
+                    {task.is_active ? "Deactivate" : "Activate"}
+                  </Button>
+                </ActionForm>
+              </>
             )}
           </span>
         </li>
@@ -77,49 +100,71 @@ function TaskRows({ tasks, isAdmin }: { tasks: TaskLite[]; isAdmin: boolean }) {
   );
 }
 
-function TaskSection({
-  title,
-  isActive,
-  tasks,
-  categoryId,
-  categoryName,
+function SubcategorySection({
+  subcategory,
+  mainCategoryName,
   isAdmin,
+  subcategoryOptions,
 }: {
-  title: string;
-  /** Undefined for a main category's own task list (the main toggles above). */
-  isActive?: boolean;
-  tasks: TaskLite[];
-  categoryId: string;
-  categoryName: string;
+  subcategory: {
+    id: string;
+    name: string;
+    short_description: string | null;
+    is_active: boolean;
+    tasks: TaskLite[];
+  };
+  mainCategoryName: string;
   isAdmin: boolean;
+  subcategoryOptions: { label: string; value: string }[];
 }) {
   return (
     <div className="grid gap-2 rounded-md border border-border p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="font-medium text-sm">{title}</span>
-          {isActive !== undefined && <StatusBadge isActive={isActive} />}
+          <span className="font-medium text-sm">{subcategory.name}</span>
+          <StatusBadge isActive={subcategory.is_active} />
           <span className="text-muted-foreground text-xs font-normal">
-            {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
+            {subcategory.tasks.length}{" "}
+            {subcategory.tasks.length === 1 ? "task" : "tasks"}
           </span>
         </span>
         <span className="flex items-center gap-2">
-          <AddTaskDialog categoryId={categoryId} categoryName={categoryName} />
-          {isAdmin && isActive !== undefined && (
-            <ActionForm action={toggleCategoryActive.bind(null, categoryId)}>
-              <Button
-                type="submit"
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground h-7 px-2 text-xs"
+          <AddTaskDialog
+            subcategoryId={subcategory.id}
+            subcategoryName={subcategory.name}
+          />
+          {isAdmin && (
+            <>
+              <EditCategoryDialog
+                subcategory
+                category={{
+                  id: subcategory.id,
+                  name: subcategory.name,
+                  short_description: subcategory.short_description,
+                }}
+                mainCategoryName={mainCategoryName}
+              />
+              <ActionForm
+                action={toggleSubcategoryActive.bind(null, subcategory.id)}
               >
-                {isActive ? "Deactivate" : "Activate"}
-              </Button>
-            </ActionForm>
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground h-7 px-2 text-xs"
+                >
+                  {subcategory.is_active ? "Deactivate" : "Activate"}
+                </Button>
+              </ActionForm>
+            </>
           )}
         </span>
       </div>
-      <TaskRows tasks={tasks} isAdmin={isAdmin} />
+      <TaskRows
+        tasks={subcategory.tasks}
+        isAdmin={isAdmin}
+        subcategoryOptions={subcategoryOptions}
+      />
     </div>
   );
 }
@@ -127,7 +172,14 @@ function TaskSection({
 async function CreateTaskContent() {
   const profile = await requireProfile();
   const isAdmin = profile.role === "admin";
-  const categories = await listCategoryHierarchy();
+  const [categories, subcategories] = await Promise.all([
+    listCategoryHierarchy(),
+    listSubcategoriesWithLabels(),
+  ]);
+  const subcategoryOptions = subcategories.map((subcategory) => ({
+    label: subcategory.label,
+    value: subcategory.id,
+  }));
 
   return (
     <Card>
@@ -164,40 +216,38 @@ async function CreateTaskContent() {
                       {category.short_description}
                     </p>
                   )}
-                  {category.subcategories.length === 0 &&
-                  category.directTasks.length === 0 ? (
+                  {category.subcategories.length === 0 ? (
                     <p className="text-muted-foreground">
-                      No subcategories or tasks in this category yet.
+                      No subcategories in this category yet. Add one to start
+                      adding tasks.
                     </p>
                   ) : (
                     <div className="grid gap-3">
                       {category.subcategories.map((subcategory) => (
-                        <TaskSection
+                        <SubcategorySection
                           key={subcategory.id}
-                          title={subcategory.name}
-                          isActive={subcategory.is_active}
-                          tasks={subcategory.tasks}
-                          categoryId={subcategory.id}
-                          categoryName={subcategory.name}
+                          subcategory={subcategory}
+                          mainCategoryName={category.name}
                           isAdmin={isAdmin}
+                          subcategoryOptions={subcategoryOptions}
                         />
                       ))}
-                      {category.directTasks.length > 0 && (
-                        <TaskSection
-                          title="No subcategory"
-                          tasks={category.directTasks}
-                          categoryId={category.id}
-                          categoryName={category.name}
-                          isAdmin={isAdmin}
-                        />
-                      )}
                     </div>
                   )}
                   <div className="mt-3 flex flex-wrap gap-2">
                     <AddCategoryDialog
-                      parentId={category.id}
-                      parentName={category.name}
+                      categoryId={category.id}
+                      categoryName={category.name}
                     />
+                    {isAdmin && (
+                      <EditCategoryDialog
+                        category={{
+                          id: category.id,
+                          name: category.name,
+                          short_description: category.short_description,
+                        }}
+                      />
+                    )}
                     {isAdmin && (
                       <ActionForm
                         action={toggleCategoryActive.bind(null, category.id)}

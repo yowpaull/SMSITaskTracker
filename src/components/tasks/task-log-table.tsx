@@ -44,10 +44,10 @@ export function TaskLogTable({
                 {log.task?.name ?? "Unknown task"}
               </TableCell>
               <TableCell className="text-muted-foreground">
-                {log.task?.category
-                  ? log.task.category.parent
-                    ? `${log.task.category.parent.name} / ${log.task.category.name}`
-                    : log.task.category.name
+                {log.task?.subcategory
+                  ? log.task.subcategory.category
+                    ? `${log.task.subcategory.category.name} / ${log.task.subcategory.name}`
+                    : log.task.subcategory.name
                   : "—"}
               </TableCell>
               <TableCell className="text-muted-foreground">

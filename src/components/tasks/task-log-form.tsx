@@ -51,12 +51,9 @@ function findTaskLocation(
 ): { mainId: string | null; subId: string | null } {
   if (!taskId) return { mainId: null, subId: null };
   for (const group of groups) {
-    if (group.directTasks.some((task) => task.value === taskId)) {
-      return { mainId: group.mainCategoryId, subId: null };
-    }
-    for (const [subId, tasks] of Object.entries(group.tasksBySubcategory)) {
-      if (tasks.some((task) => task.value === taskId)) {
-        return { mainId: group.mainCategoryId, subId };
+    for (const subcategory of group.subcategories) {
+      if (subcategory.tasks.some((task) => task.value === taskId)) {
+        return { mainId: group.mainCategoryId, subId: subcategory.id };
       }
     }
   }
@@ -144,9 +141,6 @@ export function TaskLogForm({
   const selectedGroup =
     taskGroups.find((group) => group.mainCategoryId === mainCategoryId) ??
     null;
-  const hasDirectTasks = (selectedGroup?.directTasks.length ?? 0) > 0;
-  const hasSubcategories =
-    (selectedGroup?.subcategories.length ?? 0) > 0;
 
   function onMainCategoryChange(value: string | null) {
     setMainCategoryId(value);
@@ -167,19 +161,16 @@ export function TaskLogForm({
     })),
   ];
   const subItems = [
-    hasDirectTasks
-      ? { label: "No subcategory", value: null }
-      : { label: "Select a subcategory…", value: null },
+    { label: "Select a subcategory…", value: null },
     ...(selectedGroup?.subcategories.map((subcategory) => ({
       label: subcategory.name,
       value: subcategory.id as string | null,
     })) ?? []),
   ];
-  const taskOptions: TaskOption[] = !selectedGroup
+  const taskOptions: TaskOption[] = !selectedGroup || !subCategoryId
     ? []
-    : subCategoryId === null
-      ? selectedGroup.directTasks
-      : (selectedGroup.tasksBySubcategory[subCategoryId] ?? []);
+    : (selectedGroup.subcategories.find((sub) => sub.id === subCategoryId)
+        ?.tasks ?? []);
 
   const taskItems = [
     { label: "Select a task…", value: null },
@@ -197,9 +188,8 @@ export function TaskLogForm({
 
   const noDefinitions = taskGroups.length === 0;
   const noBrands = brands.length === 0;
-  const taskReady =
-    Boolean(mainCategoryId) &&
-    (subCategoryId !== null || hasDirectTasks);
+  // The task dropdown stays locked until a subcategory is chosen explicitly.
+  const taskReady = Boolean(mainCategoryId) && subCategoryId !== null;
 
   return (
     <form ref={formRef} action={formAction} className="grid max-w-xl gap-4">
@@ -251,7 +241,7 @@ export function TaskLogForm({
             items={subItems}
             value={subCategoryId}
             onValueChange={onSubCategoryChange}
-            disabled={!mainCategoryId || !hasSubcategories}
+            disabled={!mainCategoryId}
           >
             <SelectTrigger id="sub-category-select" className="w-full">
               <SelectValue />
@@ -298,7 +288,7 @@ export function TaskLogForm({
           <input type="hidden" name="task_id" value={taskId ?? ""} />
           {mainCategoryId && !taskReady && (
             <p className="text-muted-foreground text-xs">
-              Select a subcategory to see its tasks.
+              Select a sub category to continue.
             </p>
           )}
         </Field>

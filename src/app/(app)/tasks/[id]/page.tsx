@@ -58,7 +58,13 @@ async function TaskLogViewContent({
         <CardContent className="grid gap-3 text-sm">
           <div>
             <p className="text-muted-foreground text-xs">Category</p>
-            <p>{log.task?.category?.name ?? "—"}</p>
+            <p>
+              {log.task?.subcategory
+                ? log.task.subcategory.category
+                  ? `${log.task.subcategory.category.name} / ${log.task.subcategory.name}`
+                  : log.task.subcategory.name
+                : "—"}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Brand</p>

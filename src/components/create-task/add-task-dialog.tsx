@@ -20,11 +20,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { createTaskDefinition } from "@/lib/actions/task-definitions";
 
 export function AddTaskDialog({
-  categoryId,
-  categoryName,
+  subcategoryId,
+  subcategoryName,
 }: {
-  categoryId: string;
-  categoryName: string;
+  subcategoryId: string;
+  subcategoryName: string;
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export function AddTaskDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add task</DialogTitle>
-          <DialogDescription>New task in {categoryName}.</DialogDescription>
+          <DialogDescription>New task in {subcategoryName}.</DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="grid gap-4">
           {error && (
@@ -75,14 +75,14 @@ export function AddTaskDialog({
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <input type="hidden" name="category_id" value={categoryId} />
+          <input type="hidden" name="subcategory_id" value={subcategoryId} />
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor={`task-name-${categoryId}`}>
+              <FieldLabel htmlFor={`task-name-${subcategoryId}`}>
                 Task name
               </FieldLabel>
               <Input
-                id={`task-name-${categoryId}`}
+                id={`task-name-${subcategoryId}`}
                 name="name"
                 required
                 placeholder="e.g. Publish weekly report"

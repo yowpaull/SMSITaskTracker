@@ -52,7 +52,11 @@ export async function GET(request: Request) {
 
   const rows = logs.map((log) => [
     log.task?.name ?? "Unknown task",
-    log.task?.category?.name ?? "",
+    log.task?.subcategory
+      ? log.task.subcategory.category
+        ? `${log.task.subcategory.category.name} / ${log.task.subcategory.name}`
+        : log.task.subcategory.name
+      : "",
     log.brand?.name ?? "",
     log.assignee?.full_name || log.assignee?.email || "",
     STATUS_LABELS[log.status] ?? log.status,

@@ -73,7 +73,8 @@ export function MyProgressCards({ stats }: { stats: MyTaskStats }) {
             />
           </div>
           <p className="mt-1 text-muted-foreground text-xs">
-            {stats.completed} of {stats.total} completed
+            {stats.completed} of {stats.progressTotal} completed · cancelled
+            excluded
           </p>
         </CardContent>
       </Card>

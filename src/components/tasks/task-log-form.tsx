@@ -387,7 +387,7 @@ export function TaskLogForm({
 
         <Field>
           <FieldLabel htmlFor="deadline">
-            {mode === "create" ? "Deadline" : "Deadline (optional)"}
+            {mode === "create" ? "Deadline" : "Deadline"}
           </FieldLabel>
           <Input
             id="deadline"

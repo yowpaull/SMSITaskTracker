@@ -154,7 +154,9 @@ export async function getDashboardMetrics(assignedTo?: string): Promise<Dashboar
 }
 
 export type MyTaskStats = DashboardMetrics & {
-  /** Share of the user's logs that are completed, 0–100. */
+  /** Non-cancelled logs — the denominator for overall progress. */
+  progressTotal: number;
+  /** Share of non-cancelled logs that are completed, 0–100. */
   progressPercent: number;
 };
 
@@ -162,9 +164,10 @@ export type MyTaskStats = DashboardMetrics & {
 export async function getMyTaskStats(): Promise<MyTaskStats> {
   const user = await requireUser();
   const metrics = await getDashboardMetrics(user.id);
+  const progressTotal = metrics.total - metrics.cancelled;
   const progressPercent =
-    metrics.total === 0
+    progressTotal === 0
       ? 0
-      : Math.round((metrics.completed / metrics.total) * 100);
-  return { ...metrics, progressPercent };
+      : Math.round((metrics.completed / progressTotal) * 100);
+  return { ...metrics, progressTotal, progressPercent };
 }

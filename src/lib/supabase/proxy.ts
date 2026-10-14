@@ -47,10 +47,14 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    url.search = "";
-    return NextResponse.redirect(url);
+    // requireUser sends deactivated accounts to /login?deactivated=1; let
+    // them see the login page instead of bouncing them back into the app.
+    if (request.nextUrl.searchParams.get("deactivated") !== "1") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

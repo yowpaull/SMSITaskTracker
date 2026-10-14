@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useActionState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import { useResultToast } from "@/hooks/use-result-toast";
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(login, null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const wasDeactivated = searchParams.get("deactivated") === "1";
   useResultToast(state);
 
   useEffect(() => {
@@ -23,6 +25,13 @@ export function LoginForm() {
 
   return (
     <form action={formAction} className="grid gap-4">
+      {wasDeactivated && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            Your account has been deactivated. Contact an administrator.
+          </AlertDescription>
+        </Alert>
+      )}
       {state?.error && (
         <Alert variant="destructive">
           <AlertDescription>{state.error}</AlertDescription>

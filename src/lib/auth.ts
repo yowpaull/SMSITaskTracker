@@ -20,6 +20,12 @@ export const getAuthUser = cache(async (): Promise<AuthUser | null> => {
 export async function requireUser(): Promise<AuthUser> {
   const user = await getAuthUser();
   if (!user) redirect("/login");
+  // Deactivated accounts are kept out of every authed page. The ?deactivated
+  // flag stops the proxy from bouncing them back into the app (see proxy.ts).
+  const profile = await getProfile();
+  if (profile && !profile.is_active) {
+    redirect("/login?deactivated=1");
+  }
   return user;
 }
 

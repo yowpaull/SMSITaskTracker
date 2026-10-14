@@ -43,6 +43,7 @@ async function MembersContent() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Joined</TableHead>
                     <TableHead className="w-28" />
                   </TableRow>
@@ -73,6 +74,23 @@ async function MembersContent() {
                           </Badge>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {member.is_active ? (
+                          <Badge
+                            variant="secondary"
+                            className="border-transparent bg-success/10 text-success"
+                          >
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="secondary"
+                            className="border-transparent bg-muted text-muted-foreground"
+                          >
+                            Deactivated
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(member.created_at)}
                       </TableCell>
@@ -80,6 +98,7 @@ async function MembersContent() {
                         <MemberRoleMenu
                           memberId={member.id}
                           currentRole={member.role}
+                          isActive={member.is_active}
                           isSelf={member.id === adminProfile.id}
                         />
                       </TableCell>
@@ -132,7 +151,7 @@ export default function MembersPage() {
     <div className="grid gap-4">
       <PageHeader
         title="Members"
-        description="Admins create accounts and manage roles. There is no self sign-up."
+        description="Admins create accounts, manage roles, and deactivate members. There is no self sign-up."
       />
       <Suspense fallback={<MembersSkeleton />}>
         <MembersContent />

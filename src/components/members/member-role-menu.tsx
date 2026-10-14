@@ -13,15 +13,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { updateMemberRole } from "@/lib/actions/members";
+import { setMemberActive, updateMemberRole } from "@/lib/actions/members";
 
 export function MemberRoleMenu({
   memberId,
   currentRole,
+  isActive,
   isSelf,
 }: {
   memberId: string;
   currentRole: "admin" | "user";
+  isActive: boolean;
   isSelf: boolean;
 }) {
   const [pending, startTransition] = useTransition();
@@ -43,6 +45,17 @@ export function MemberRoleMenu({
     });
   }
 
+  function setActive(active: boolean) {
+    startTransition(async () => {
+      const result = await setMemberActive(memberId, active);
+      if (result?.error) {
+        toast.error(result.error);
+      } else if (result?.success) {
+        toast.success(result.success);
+      }
+    });
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -51,7 +64,7 @@ export function MemberRoleMenu({
             variant="outline"
             size="sm"
             disabled={pending}
-            aria-label="Manage member role"
+            aria-label="Manage member"
           />
         }
       >
@@ -71,6 +84,19 @@ export function MemberRoleMenu({
         {currentRole !== "user" && (
           <DropdownMenuItem onClick={() => changeRole("user")}>
             Make member
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        {isActive ? (
+          <DropdownMenuItem
+            onClick={() => setActive(false)}
+            className="text-destructive focus:text-destructive"
+          >
+            Deactivate account
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={() => setActive(true)}>
+            Activate account
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

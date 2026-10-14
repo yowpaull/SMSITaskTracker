@@ -17,6 +17,12 @@ export function createAdminClient() {
     );
   }
 
+  if (secretKey.startsWith("sb_publishable_")) {
+    throw new Error(
+      "SUPABASE_SECRET_KEY is set to a publishable key (sb_publishable_…), which cannot call admin APIs. Replace it in .env.local with the secret key (sb_secret_…) from Supabase Dashboard → Project Settings → API → Secret keys, then restart the dev server.",
+    );
+  }
+
   return createClient<Database>(url, secretKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });

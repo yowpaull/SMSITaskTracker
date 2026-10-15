@@ -55,7 +55,7 @@ async function TaskLogEditContent({
             mode="update"
             isAdmin={isAdmin}
             initial={log}
-            cancelHref={`/tasks/${log.id}`}
+            cancelHref="/tasks"
             brands={brands.map((brand) => ({
               label: brand.name,
               value: brand.id,

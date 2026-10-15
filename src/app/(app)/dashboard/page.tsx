@@ -2,6 +2,18 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { MetricCards, MetricCardsSkeleton } from "@/components/metrics/metric-cards";
+import {
+  StatusBreakdownChart,
+  StatusBreakdownChartSkeleton,
+} from "@/components/metrics/status-breakdown-chart";
+import {
+  BrandProgressChart,
+  BrandProgressChartSkeleton,
+} from "@/components/metrics/brand-progress-chart";
+import {
+  UserProgressTable,
+  UserProgressTableSkeleton,
+} from "@/components/metrics/user-progress-table";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
@@ -13,21 +25,26 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TaskLogTable } from "@/components/tasks/task-log-table";
 import { requireProfile } from "@/lib/auth";
 import {
-  getDashboardMetrics,
+  getAdminDashboardStats,
   listRecentTaskLogs,
 } from "@/lib/data/task-logs";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 
 async function DashboardContent() {
   await connection();
-  const [metrics, recent] = await Promise.all([
-    getDashboardMetrics(),
+  const [stats, recent] = await Promise.all([
+    getAdminDashboardStats(),
     listRecentTaskLogs(5),
   ]);
 
   return (
     <div className="grid gap-6">
-      <MetricCards metrics={metrics} />
+      <MetricCards metrics={stats.overall} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <StatusBreakdownChart stats={stats.overall} />
+        <BrandProgressChart brands={stats.byBrand} />
+      </div>
+      <UserProgressTable users={stats.byUser} />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Recent task logs</CardTitle>
@@ -54,6 +71,11 @@ function DashboardSkeleton() {
   return (
     <div className="grid gap-6" aria-busy="true">
       <MetricCardsSkeleton />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <StatusBreakdownChartSkeleton />
+        <BrandProgressChartSkeleton />
+      </div>
+      <UserProgressTableSkeleton />
       <Card>
         <CardHeader>
           <Skeleton className="h-4 w-32" />
@@ -75,10 +97,10 @@ export default async function DashboardPage() {
   if (profile.role !== "admin") redirect("/tasks");
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <PageHeader
         title="Dashboard"
-        description="Task progress across brands and categories."
+        description="Task progress across brands and members."
       />
       <Suspense fallback={<DashboardSkeleton />}>
         <DashboardContent />

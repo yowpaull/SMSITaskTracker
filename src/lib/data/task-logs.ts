@@ -1,6 +1,8 @@
 import "server-only";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { listBrands, listMembers } from "@/lib/data/masters";
+import { isDelayed, type TaskStatus } from "@/lib/status";
 import type { TaskLogFilters, TaskLogWithRelations } from "@/lib/types";
 
 export const TASK_LOG_PAGE_SIZE = 25;
@@ -170,4 +172,133 @@ export async function getMyTaskStats(): Promise<MyTaskStats> {
       ? 0
       : Math.round((metrics.completed / progressTotal) * 100);
   return { ...metrics, progressTotal, progressPercent };
+}
+
+export type GroupTaskStats = DashboardMetrics & {
+  /** Non-cancelled logs — the denominator for overall progress. */
+  progressTotal: number;
+  /** Share of non-cancelled logs that are completed, 0–100. */
+  progressPercent: number;
+};
+
+export type BrandTaskStats = GroupTaskStats & {
+  brandId: string;
+  brandName: string;
+};
+
+export type UserTaskStats = GroupTaskStats & {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  isActive: boolean;
+};
+
+export type AdminDashboardStats = {
+  overall: GroupTaskStats;
+  byBrand: BrandTaskStats[];
+  byUser: UserTaskStats[];
+};
+
+function buildGroupStats(
+  rows: { status: string; deadline: string | null }[],
+): GroupTaskStats {
+  let pending = 0;
+  let inProgress = 0;
+  let completed = 0;
+  let cancelled = 0;
+  let delayed = 0;
+
+  for (const row of rows) {
+    if (row.status === "pending") pending++;
+    else if (row.status === "in_progress") inProgress++;
+    else if (row.status === "completed") completed++;
+    else if (row.status === "cancelled") cancelled++;
+    if (isDelayed(row.status as TaskStatus, row.deadline)) delayed++;
+  }
+
+  const total = rows.length;
+  const progressTotal = total - cancelled;
+  const progressPercent =
+    progressTotal === 0
+      ? 0
+      : Math.round((completed / progressTotal) * 100);
+
+  return {
+    total,
+    pending,
+    inProgress,
+    completed,
+    cancelled,
+    delayed,
+    progressTotal,
+    progressPercent,
+  };
+}
+
+/**
+ * Admin dashboard data: overall stats plus per-brand and per-member
+ * breakdowns. Aggregated in JS from a single lightweight task_logs fetch
+ * (PostgREST has no GROUP BY).
+ */
+export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("task_logs")
+    .select(
+      "brand_id, status, deadline, assignee:profiles!assigned_to ( id, full_name, email )",
+    );
+
+  if (error) {
+    throw new Error(`Failed to load dashboard stats: ${error.message}`);
+  }
+
+  type Row = {
+    brand_id: string;
+    status: string;
+    deadline: string | null;
+    assignee: { id: string; full_name: string; email: string } | null;
+  };
+  const rows = (data ?? []) as unknown as Row[];
+
+  const [brands, members] = await Promise.all([
+    listBrands(false),
+    listMembers(),
+  ]);
+
+  const overall = buildGroupStats(rows);
+
+  const byBrand: BrandTaskStats[] = brands
+    .map((brand) => ({
+      brandId: brand.id,
+      brandName: brand.name,
+      ...buildGroupStats(rows.filter((row) => row.brand_id === brand.id)),
+    }))
+    .sort(
+      (a, b) => b.total - a.total || a.brandName.localeCompare(b.brandName),
+    );
+
+  const rowsByUser = new Map<string, Row[]>();
+  for (const row of rows) {
+    if (!row.assignee) continue;
+    const list = rowsByUser.get(row.assignee.id);
+    if (list) list.push(row);
+    else rowsByUser.set(row.assignee.id, [row]);
+  }
+
+  const byUser: UserTaskStats[] = members
+    .map((member) => ({
+      userId: member.id,
+      userName: member.full_name || member.email,
+      userEmail: member.email,
+      isActive: member.is_active,
+      ...buildGroupStats(rowsByUser.get(member.id) ?? []),
+    }))
+    .sort(
+      (a, b) =>
+        b.progressPercent - a.progressPercent ||
+        b.total - a.total ||
+        a.userName.localeCompare(b.userName),
+    );
+
+  return { overall, byBrand, byUser };
 }

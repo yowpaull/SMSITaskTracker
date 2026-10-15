@@ -39,7 +39,7 @@ export function MetricCards({ metrics }: { metrics: DashboardMetrics }) {
     {
       label: "Overdue",
       value: metrics.overdue,
-      hint: "Past deadline, still open",
+      hint: "Due before today, still open",
     },
     { label: "Completed", value: metrics.completed },
     { label: "Cancelled", value: metrics.cancelled },

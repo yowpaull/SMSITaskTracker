@@ -115,7 +115,7 @@ export function StatusBreakdownChart({ stats }: { stats: GroupTaskStats }) {
                     <span className="font-medium text-warning">
                       {stats.overdue} overdue
                     </span>{" "}
-                    (past deadline, still open)
+                    (due before today, still open)
                   </>
                 )}
               </p>

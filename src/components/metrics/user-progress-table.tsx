@@ -35,6 +35,7 @@ export function UserProgressTable({ users }: { users: UserTaskStats[] }) {
                   <TableHead className="text-right">In progress</TableHead>
                   <TableHead className="text-right">Completed</TableHead>
                   <TableHead className="text-right">Cancelled</TableHead>
+                  <TableHead className="text-right">Overdue</TableHead>
                   <TableHead className="w-44">Progress</TableHead>
                 </TableRow>
               </TableHeader>
@@ -64,6 +65,13 @@ export function UserProgressTable({ users }: { users: UserTaskStats[] }) {
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
                       {user.cancelled}
+                    </TableCell>
+                    <TableCell
+                      className={`text-right font-medium tabular-nums ${
+                        user.overdue > 0 ? "text-warning" : "text-muted-foreground"
+                      }`}
+                    >
+                      {user.overdue}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

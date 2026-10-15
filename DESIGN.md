@@ -65,7 +65,7 @@ Avoid violet/purple themes, excessive gradients, neon colors, and large decorati
 
 - **Dashboard:** Show useful metrics such as total, overdue, in-progress, completed, and cancelled tasks. Define each metric consistently with its underlying query.
 - **Task list:** Make task name, category, brand, status, urgency, importance, and deadline easy to scan. Provide practical search, filtering, and sorting controls.
-- **Status:** Use consistent badges for `in_progress`, `completed`, and `cancelled`. Show overdue work (past deadline, still open) in a dedicated column or badge — never merged into the status badge. Pair color with readable status text.
+- **Status:** Use consistent badges for `in_progress`, `completed`, and `cancelled`. Show overdue work (deadline before today, still open) in a dedicated column or badge — never merged into the status badge. Pair color with readable status text.
 - **Urgency and importance:** Use compact labels, badges, or icons. Avoid making the entire interface visually alarming when a task is urgent.
 - **Forms:** Use explicit labels, sensible defaults, inline validation, and clear submission feedback.
 - **Empty states:** Explain when no records match the current view and offer a useful next action where appropriate.

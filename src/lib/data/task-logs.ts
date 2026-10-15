@@ -147,9 +147,14 @@ export async function getDashboardMetrics(assignedTo?: string): Promise<Dashboar
       base().eq("status", "in_progress"),
       base().eq("status", "completed"),
       base().eq("status", "cancelled"),
+      // Overdue = deadline's calendar day is before today (UTC). A deadline
+      // of today never counts — must match isOverdue() in lib/status.ts.
       base()
         .in("status", ["pending", "in_progress"])
-        .lt("deadline", new Date().toISOString()),
+        .lt(
+          "deadline",
+          `${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`,
+        ),
     ]);
 
   const failed = [total, pending, inProgress, completed, cancelled, overdue].find(

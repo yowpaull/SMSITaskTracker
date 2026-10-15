@@ -14,8 +14,10 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
   cancelled: "Cancelled",
 };
 
-/** Derived state: overdue work that is still open. Never stored. */
-export function isDelayed(
+export const OVERDUE_LABEL = "Overdue";
+
+/** Derived state: past deadline but still open. Never stored. */
+export function isOverdue(
   status: TaskStatus,
   deadline: string | null | undefined,
 ): boolean {

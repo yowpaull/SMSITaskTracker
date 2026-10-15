@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BackButton } from "@/components/shared/back-button";
 import { PageHeader } from "@/components/shared/page-header";
 import { PriorityBadges } from "@/components/tasks/priority-badges";
-import { StatusBadge } from "@/components/tasks/status-badge";
+import { StatusBadge, OverdueBadge } from "@/components/tasks/status-badge";
 import { getTaskLog } from "@/lib/data/task-logs";
 import { formatDate, formatDateTime } from "@/lib/format";
 
@@ -48,7 +48,8 @@ async function TaskLogViewContent({
             {log.task?.name ?? "Unknown task"}
           </CardTitle>
           <CardDescription className="flex items-center gap-2">
-            <StatusBadge status={log.status} deadline={log.deadline} />
+            <StatusBadge status={log.status} />
+            <OverdueBadge status={log.status} deadline={log.deadline} />
             <PriorityBadges
               urgent={log.urgent}
               important={log.important}

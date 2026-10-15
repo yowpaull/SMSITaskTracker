@@ -2,7 +2,7 @@ import "server-only";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { listBrands, listMembers } from "@/lib/data/masters";
-import { isDelayed, type TaskStatus } from "@/lib/status";
+import { isOverdue, type TaskStatus } from "@/lib/status";
 import type { TaskLogFilters, TaskLogWithRelations } from "@/lib/types";
 
 export const TASK_LOG_PAGE_SIZE = 25;
@@ -127,7 +127,7 @@ export type DashboardMetrics = {
   inProgress: number;
   completed: number;
   cancelled: number;
-  delayed: number;
+  overdue: number;
 };
 
 export async function getDashboardMetrics(assignedTo?: string): Promise<DashboardMetrics> {
@@ -140,7 +140,7 @@ export async function getDashboardMetrics(assignedTo?: string): Promise<Dashboar
     return query;
   };
 
-  const [total, pending, inProgress, completed, cancelled, delayed] =
+  const [total, pending, inProgress, completed, cancelled, overdue] =
     await Promise.all([
       base(),
       base().eq("status", "pending"),
@@ -152,7 +152,7 @@ export async function getDashboardMetrics(assignedTo?: string): Promise<Dashboar
         .lt("deadline", new Date().toISOString()),
     ]);
 
-  const failed = [total, pending, inProgress, completed, cancelled, delayed].find(
+  const failed = [total, pending, inProgress, completed, cancelled, overdue].find(
     (result) => result.error,
   );
   if (failed?.error) {
@@ -165,7 +165,7 @@ export async function getDashboardMetrics(assignedTo?: string): Promise<Dashboar
     inProgress: inProgress.count ?? 0,
     completed: completed.count ?? 0,
     cancelled: cancelled.count ?? 0,
-    delayed: delayed.count ?? 0,
+    overdue: overdue.count ?? 0,
   };
 }
 
@@ -220,14 +220,14 @@ function buildGroupStats(
   let inProgress = 0;
   let completed = 0;
   let cancelled = 0;
-  let delayed = 0;
+  let overdue = 0;
 
   for (const row of rows) {
     if (row.status === "pending") pending++;
     else if (row.status === "in_progress") inProgress++;
     else if (row.status === "completed") completed++;
     else if (row.status === "cancelled") cancelled++;
-    if (isDelayed(row.status as TaskStatus, row.deadline)) delayed++;
+    if (isOverdue(row.status as TaskStatus, row.deadline)) overdue++;
   }
 
   const total = rows.length;
@@ -243,7 +243,7 @@ function buildGroupStats(
     inProgress,
     completed,
     cancelled,
-    delayed,
+    overdue,
     progressTotal,
     progressPercent,
   };

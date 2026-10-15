@@ -9,7 +9,7 @@ type Metric = {
   className?: string;
 };
 
-function MetricCard({ label, value, hint }: Metric) {
+function MetricCard({ label, value, hint, className }: Metric) {
   return (
     <Card>
       <CardHeader className="pb-1">
@@ -18,7 +18,9 @@ function MetricCard({ label, value, hint }: Metric) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="font-semibold text-2xl tabular-nums">{value}</p>
+        <p className={`font-semibold text-2xl tabular-nums ${className ?? ""}`}>
+          {value}
+        </p>
         {hint && <p className="mt-0.5 text-muted-foreground text-xs">{hint}</p>}
       </CardContent>
     </Card>
@@ -29,10 +31,14 @@ export function MetricCards({ metrics }: { metrics: DashboardMetrics }) {
   const items: Metric[] = [
     { label: "Total", value: metrics.total },
     { label: "Pending", value: metrics.pending },
-    { label: "In progress", value: metrics.inProgress },
     {
-      label: "Delayed",
-      value: metrics.delayed,
+      label: "In progress",
+      value: metrics.inProgress,
+      className: "text-destructive",
+    },
+    {
+      label: "Overdue",
+      value: metrics.overdue,
       hint: "Past deadline, still open",
     },
     { label: "Completed", value: metrics.completed },

@@ -109,11 +109,11 @@ export function StatusBreakdownChart({ stats }: { stats: GroupTaskStats }) {
               <p className="text-muted-foreground text-xs">
                 {stats.completed} of {stats.progressTotal} completed · cancelled
                 excluded
-                {stats.delayed > 0 && (
+                {stats.overdue > 0 && (
                   <>
                     {" · "}
                     <span className="font-medium text-warning">
-                      {stats.delayed} delayed
+                      {stats.overdue} overdue
                     </span>{" "}
                     (past deadline, still open)
                   </>

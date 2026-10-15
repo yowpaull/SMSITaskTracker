@@ -37,7 +37,7 @@ export function MyProgressCards({ stats }: { stats: MyTaskStats }) {
       <StatusCard
         label="In progress"
         value={stats.inProgress}
-        className="text-primary"
+        className="text-destructive"
       />
       <StatusCard
         label="Completed"

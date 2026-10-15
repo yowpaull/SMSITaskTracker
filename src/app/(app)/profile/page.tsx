@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireProfile } from "@/lib/auth";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";  
 
 async function ProfileContent() {
   const profile = await requireProfile();

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import {
   SidebarInset,
   SidebarProvider,
@@ -15,6 +16,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <SidebarInset>
         <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-background px-4">
           <SidebarTrigger />
+          <div className="flex-1" />
+          <ThemeToggle />
         </header>
         <main className="flex-1">
           <div className="mx-auto w-full max-w-6xl px-4 py-6">{children}</div>

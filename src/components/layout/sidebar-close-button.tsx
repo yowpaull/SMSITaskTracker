@@ -12,7 +12,7 @@ export function SidebarCloseButton() {
     <Button
       variant="ghost"
       size="icon-sm"
-      className="shrink-0 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:hidden"
+      className="shrink-0 text-sidebar-foreground/70 hover:bg-transparent! hover:text-sidebar-foreground! md:hidden"
       onClick={() => setOpenMobile(false)}
       aria-label="Close sidebar"
     >

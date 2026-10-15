@@ -1,19 +1,19 @@
 import { cn } from "@/lib/utils";
 
-/** Segment colors match the StatusBadge palette (secondary/primary/success/muted). */
+/** Segment colors match the app's semantic token family. */
 export const STATUS_SEGMENT_CLASSES: Record<string, string> = {
-  pending: "bg-secondary",
+  pending: "bg-pending",
   in_progress: "bg-primary",
   completed: "bg-success",
-  cancelled: "bg-muted-foreground/30",
+  cancelled: "bg-cancelled",
 };
 
 /** Raw token colors for canvas-free charts (conic-gradient etc.). */
 export const STATUS_TOKEN_COLORS: Record<string, string> = {
-  pending: "var(--secondary)",
+  pending: "var(--pending)",
   in_progress: "var(--primary)",
   completed: "var(--success)",
-  cancelled: "color-mix(in oklab, var(--muted-foreground) 30%, transparent)",
+  cancelled: "var(--cancelled)",
 };
 
 export function ProgressBar({

@@ -62,9 +62,6 @@ export function LoginForm() {
         {pending && <Spinner data-icon="inline-start" />}
         Sign in
       </Button>
-      <p className="text-center text-xs text-muted-foreground">
-        Accounts are created by an administrator. There is no self sign-up.
-      </p>
     </form>
   );
 }

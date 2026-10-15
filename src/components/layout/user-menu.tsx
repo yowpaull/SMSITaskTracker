@@ -45,7 +45,10 @@ export function UserMenu({
           <Button
             variant="ghost"
             size="sm"
-            className={cn("w-full justify-start gap-2", className)}
+            className={cn(
+              "w-full justify-start gap-2 hover:bg-transparent! hover:text-sidebar-foreground! active:bg-transparent! aria-expanded:bg-transparent!",
+              className,
+            )}
             aria-label="Open account menu"
           />
         }

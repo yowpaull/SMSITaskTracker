@@ -14,6 +14,7 @@ import {
   UserProgressTable,
   UserProgressTableSkeleton,
 } from "@/components/metrics/user-progress-table";
+import { MonthFilter } from "@/components/metrics/month-filter";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
@@ -30,15 +31,28 @@ import {
 } from "@/lib/data/task-logs";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 
-async function DashboardContent() {
+type Params = Record<string, string | string[] | undefined>;
+
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+async function DashboardContent({ searchParams }: { searchParams: Promise<Params> }) {
   await connection();
+  const params = await searchParams;
+  const rawMonth = first(params.month) ?? "";
+  const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(rawMonth) ? rawMonth : undefined;
+
   const [stats, recent] = await Promise.all([
-    getAdminDashboardStats(),
-    listRecentTaskLogs(5),
+    getAdminDashboardStats(month),
+    listRecentTaskLogs(5, month),
   ]);
 
   return (
     <div className="grid gap-6">
+      <div className="flex justify-end">
+        <MonthFilter month={month} />
+      </div>
       <MetricCards metrics={stats.overall} />
       <div className="grid gap-6 lg:grid-cols-2">
         <StatusBreakdownChart stats={stats.overall} />
@@ -70,6 +84,9 @@ async function DashboardContent() {
 function DashboardSkeleton() {
   return (
     <div className="grid gap-6" aria-busy="true">
+      <div className="flex justify-end">
+        <Skeleton className="h-8 w-56" />
+      </div>
       <MetricCardsSkeleton />
       <div className="grid gap-6 lg:grid-cols-2">
         <StatusBreakdownChartSkeleton />
@@ -92,7 +109,11 @@ function DashboardSkeleton() {
 
 export const instant = false;
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}) {
   const profile = await requireProfile();
   if (profile.role !== "admin") redirect("/tasks");
 
@@ -103,7 +124,7 @@ export default async function DashboardPage() {
         description="Task progress across brands and members."
       />
       <Suspense fallback={<DashboardSkeleton />}>
-        <DashboardContent />
+        <DashboardContent searchParams={searchParams} />
       </Suspense>
     </div>
   );

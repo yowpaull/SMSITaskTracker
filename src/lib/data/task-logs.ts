@@ -52,16 +52,30 @@ export async function listTaskLogs(filters: TaskLogFilters, page = 1) {
   };
 }
 
-export async function listRecentTaskLogs(limit = 5) {
+export async function listRecentTaskLogs(limit = 5, month?: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("task_logs")
-    .select(LOG_SELECT)
+  let query = supabase.from("task_logs").select(LOG_SELECT);
+  const range = monthToRange(month);
+  if (range) {
+    query = query.gte("created_at", range.fromIso).lt("created_at", range.toIso);
+  }
+  const { data, error } = await query
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) throw new Error(`Failed to load recent task logs: ${error.message}`);
   return (data ?? []) as unknown as TaskLogWithRelations[];
+}
+
+/** UTC [month start, next month start) for a "YYYY-MM" filter value. */
+function monthToRange(
+  month?: string,
+): { fromIso: string; toIso: string } | null {
+  if (!month || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return null;
+  const start = new Date(`${month}-01T00:00:00.000Z`);
+  const end = new Date(start);
+  end.setUTCMonth(end.getUTCMonth() + 1);
+  return { fromIso: start.toISOString(), toIso: end.toISOString() };
 }
 
 /**
@@ -238,15 +252,23 @@ function buildGroupStats(
 /**
  * Admin dashboard data: overall stats plus per-brand and per-member
  * breakdowns. Aggregated in JS from a single lightweight task_logs fetch
- * (PostgREST has no GROUP BY).
+ * (PostgREST has no GROUP BY). Pass `month` ("YYYY-MM") to scope logs to
+ * their creation month.
  */
-export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
+export async function getAdminDashboardStats(
+  month?: string,
+): Promise<AdminDashboardStats> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("task_logs")
     .select(
       "brand_id, status, deadline, assignee:profiles!assigned_to ( id, full_name, email )",
     );
+  const range = monthToRange(month);
+  if (range) {
+    query = query.gte("created_at", range.fromIso).lt("created_at", range.toIso);
+  }
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Failed to load dashboard stats: ${error.message}`);

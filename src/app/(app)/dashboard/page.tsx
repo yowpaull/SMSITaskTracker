@@ -2,6 +2,19 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { MetricCards, MetricCardsSkeleton } from "@/components/metrics/metric-cards";
+import {
+  StatusBreakdownChart,
+  StatusBreakdownChartSkeleton,
+} from "@/components/metrics/status-breakdown-chart";
+import {
+  BrandProgressChart,
+  BrandProgressChartSkeleton,
+} from "@/components/metrics/brand-progress-chart";
+import {
+  UserProgressTable,
+  UserProgressTableSkeleton,
+} from "@/components/metrics/user-progress-table";
+import { MonthFilter } from "@/components/metrics/month-filter";
 import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
@@ -13,21 +26,39 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TaskLogTable } from "@/components/tasks/task-log-table";
 import { requireProfile } from "@/lib/auth";
 import {
-  getDashboardMetrics,
+  getAdminDashboardStats,
   listRecentTaskLogs,
 } from "@/lib/data/task-logs";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 
-async function DashboardContent() {
+type Params = Record<string, string | string[] | undefined>;
+
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+async function DashboardContent({ searchParams }: { searchParams: Promise<Params> }) {
   await connection();
-  const [metrics, recent] = await Promise.all([
-    getDashboardMetrics(),
-    listRecentTaskLogs(5),
+  const params = await searchParams;
+  const rawMonth = first(params.month) ?? "";
+  const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(rawMonth) ? rawMonth : undefined;
+
+  const [stats, recent] = await Promise.all([
+    getAdminDashboardStats(month),
+    listRecentTaskLogs(5, month),
   ]);
 
   return (
     <div className="grid gap-6">
-      <MetricCards metrics={metrics} />
+      <div className="flex justify-end">
+        <MonthFilter month={month} />
+      </div>
+      <MetricCards metrics={stats.overall} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <StatusBreakdownChart stats={stats.overall} />
+        <BrandProgressChart brands={stats.byBrand} />
+      </div>
+      <UserProgressTable users={stats.byUser} />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Recent task logs</CardTitle>
@@ -53,7 +84,15 @@ async function DashboardContent() {
 function DashboardSkeleton() {
   return (
     <div className="grid gap-6" aria-busy="true">
+      <div className="flex justify-end">
+        <Skeleton className="h-8 w-56" />
+      </div>
       <MetricCardsSkeleton />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <StatusBreakdownChartSkeleton />
+        <BrandProgressChartSkeleton />
+      </div>
+      <UserProgressTableSkeleton />
       <Card>
         <CardHeader>
           <Skeleton className="h-4 w-32" />
@@ -70,18 +109,22 @@ function DashboardSkeleton() {
 
 export const instant = false;
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}) {
   const profile = await requireProfile();
   if (profile.role !== "admin") redirect("/tasks");
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <PageHeader
         title="Dashboard"
-        description="Task progress across brands and categories."
+        description="Task progress across brands and members."
       />
       <Suspense fallback={<DashboardSkeleton />}>
-        <DashboardContent />
+        <DashboardContent searchParams={searchParams} />
       </Suspense>
     </div>
   );

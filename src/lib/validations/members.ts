@@ -17,4 +17,8 @@ export const updateMemberRoleSchema = z.object({
   role: memberRoleSchema,
 });
 
+export const memberIdSchema = z.object({
+  id: z.uuid(),
+});
+
 export type CreateMemberInput = z.infer<typeof createMemberSchema>;

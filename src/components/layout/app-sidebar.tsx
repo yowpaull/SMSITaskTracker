@@ -35,7 +35,7 @@ async function SidebarFooterContent() {
       />
       <SignOutButton
         iconOnly
-        className="shrink-0 text-white/80 hover:bg-white/10 hover:text-white group-data-[collapsible=icon]:hidden"
+        className="shrink-0 text-white/80 hover:bg-transparent! hover:text-white! group-data-[collapsible=icon]:hidden"
       />
     </div>
   );
@@ -67,18 +67,18 @@ function SidebarFooterSkeleton() {
 
 export function AppSidebar() {
   return (
-    <Sidebar variant="inset" collapsible="icon">
-      <SidebarHeader>
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-1">
           <SidebarMenu className="min-w-0 flex-1">
             <SidebarMenuItem>
               <SidebarMenuButton
                 render={<Link href="/tasks" />}
                 tooltip="Task Tracker"
-                className="min-w-0"
+                className="min-w-0 h-auto py-1.5 hover:bg-transparent active:bg-transparent hover:text-sidebar-foreground"
               >
                 <SquareCheckBigIcon />
-                <span className="font-semibold tracking-tight">
+                <span className="font-bold text-lg tracking-tight">
                   Task Tracker
                 </span>
               </SidebarMenuButton>
@@ -87,7 +87,7 @@ export function AppSidebar() {
           <SidebarCloseButton />
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="flex-1 overflow-y-auto px-2 py-3">
         <Suspense fallback={<SidebarNavSkeleton />}>
           <SidebarNavContent />
         </Suspense>

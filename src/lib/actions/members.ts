@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   createMemberSchema,
+  memberIdSchema,
   updateMemberRoleSchema,
 } from "@/lib/validations/members";
 import type { ActionResult } from "@/lib/actions/types";
@@ -36,7 +37,17 @@ export async function createMember(
     };
   }
 
-  const admin = createAdminClient();
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Admin client is not configured. Set SUPABASE_SECRET_KEY in .env.local.",
+    };
+  }
   const { data, error } = await admin.auth.admin.createUser({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -99,5 +110,43 @@ export async function updateMemberRole(
       parsed.data.role === "admin"
         ? "Member is now an admin."
         : "Member is now a user.",
+  };
+}
+
+export async function setMemberActive(
+  id: string,
+  isActive: boolean,
+): Promise<ActionResult> {
+  const adminProfile = await requireAdmin();
+
+  const parsed = memberIdSchema.safeParse({ id });
+  if (!parsed.success) {
+    return { error: "Invalid member." };
+  }
+
+  if (parsed.data.id === adminProfile.id) {
+    return { error: "You cannot deactivate your own account." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ is_active: isActive })
+    .eq("id", parsed.data.id)
+    .select("id");
+
+  if (error) {
+    return { error: `Could not update account: ${error.message}` };
+  }
+  if (!data || data.length === 0) {
+    return { error: "Member not found." };
+  }
+
+  revalidatePath("/members");
+  revalidatePath("/tasks");
+  return {
+    success: isActive
+      ? "Account activated. They can sign in again."
+      : "Account deactivated. They can no longer sign in.",
   };
 }

@@ -9,10 +9,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/format";
+import { isOverdue } from "@/lib/status";
 import type { TaskLogWithRelations } from "@/lib/types";
 import { DeleteTaskLogButton } from "./delete-task-log-button";
 import { PriorityBadges } from "./priority-badges";
-import { StatusBadge } from "./status-badge";
+import { OverdueBadge, StatusBadge } from "./status-badge";
 
 export function TaskLogTable({
   logs,
@@ -31,6 +32,7 @@ export function TaskLogTable({
             <TableHead>Brand</TableHead>
             {showAssignee && <TableHead>Assignee</TableHead>}
             <TableHead>Status</TableHead>
+            <TableHead>Overdue</TableHead>
             <TableHead>Priority</TableHead>
             <TableHead>Deadline</TableHead>
             <TableHead>Date Created</TableHead>
@@ -61,7 +63,14 @@ export function TaskLogTable({
                 </TableCell>
               )}
               <TableCell>
-                <StatusBadge status={log.status} deadline={log.deadline} />
+                <StatusBadge status={log.status} />
+              </TableCell>
+              <TableCell>
+                {isOverdue(log.status, log.deadline) ? (
+                  <OverdueBadge status={log.status} deadline={log.deadline} />
+                ) : (
+                  <span className="text-muted-foreground text-xs">No</span>
+                )}
               </TableCell>
               <TableCell>
                 <PriorityBadges

@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { PlusIcon } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
+import { Pagination } from "@/components/shared/pagination";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -83,31 +84,6 @@ function buildHref(
   if (page > 1) search.set("page", String(page));
   const qs = search.toString();
   return qs ? `/tasks?${qs}` : "/tasks";
-}
-
-function getPageItems(
-  current: number,
-  total: number,
-): Array<number | "ellipsis"> {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, index) => index + 1);
-  }
-  const pages = new Set<number>([1, total, current - 1, current, current + 1]);
-  if (current <= 3) [2, 3, 4].forEach((p) => pages.add(p));
-  if (current >= total - 2) {
-    [total - 1, total - 2, total - 3].forEach((p) => pages.add(p));
-  }
-  const sorted = [...pages]
-    .filter((p) => p >= 1 && p <= total)
-    .sort((a, b) => a - b);
-  const items: Array<number | "ellipsis"> = [];
-  let prev = 0;
-  for (const p of sorted) {
-    if (p - prev > 1) items.push("ellipsis");
-    items.push(p);
-    prev = p;
-  }
-  return items;
 }
 
 async function TaskListContent({ searchParams }: { searchParams: Promise<Params> }) {
@@ -196,67 +172,11 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
       )}
 
       {totalPages > 1 && (
-        <div className="flex justify-end">
-          <nav className="flex items-center gap-1" aria-label="Pagination">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              nativeButton={false}
-              render={
-                <Link
-                  href={
-                    page <= 1
-                      ? "/tasks"
-                      : buildHref(filters, page - 1)
-                  }
-                />
-              }
-            >
-              Previous
-            </Button>
-            {getPageItems(page, totalPages).map((item, index) =>
-              typeof item === "number" ? (
-                <Button
-                  key={item}
-                  variant={item === page ? "default" : "outline"}
-                  size="sm"
-                  className="px-2.5"
-                  aria-current={item === page ? "page" : undefined}
-                  nativeButton={false}
-                  render={<Link href={buildHref(filters, item)} />}
-                >
-                  {item}
-                </Button>
-              ) : (
-                <span
-                  key={`ellipsis-${index}`}
-                  className="px-1 text-muted-foreground text-xs"
-                  aria-hidden="true"
-                >
-                  …
-                </span>
-              ),
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              nativeButton={false}
-              render={
-                <Link
-                  href={
-                    page >= totalPages
-                      ? "/tasks"
-                      : buildHref(filters, page + 1)
-                  }
-                />
-              }
-            >
-              Next
-            </Button>
-          </nav>
-        </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          buildHref={(target) => buildHref(filters, target)}
+        />
       )}
     </div>
   );

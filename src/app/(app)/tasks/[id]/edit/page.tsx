@@ -11,7 +11,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { BackButton } from "@/components/shared/back-button";
 import { PageHeader } from "@/components/shared/page-header";
-import { StatusBadge } from "@/components/tasks/status-badge";
+import { StatusBadge, OverdueBadge } from "@/components/tasks/status-badge";
 import { TaskLogForm } from "@/components/tasks/task-log-form";
 import { requireProfile } from "@/lib/auth";
 import { getTaskLog } from "@/lib/data/task-logs";
@@ -55,7 +55,7 @@ async function TaskLogEditContent({
             mode="update"
             isAdmin={isAdmin}
             initial={log}
-            cancelHref={`/tasks/${log.id}`}
+            cancelHref="/tasks"
             brands={brands.map((brand) => ({
               label: brand.name,
               value: brand.id,
@@ -72,7 +72,8 @@ async function TaskLogEditContent({
           <CardHeader>
             <CardTitle className="text-base">Details</CardTitle>
             <CardDescription>
-              <StatusBadge status={log.status} deadline={log.deadline} />
+              <StatusBadge status={log.status} />
+              <OverdueBadge status={log.status} deadline={log.deadline} />
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 text-sm">

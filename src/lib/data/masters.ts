@@ -247,3 +247,22 @@ export async function listMembers() {
   if (error) throw new Error(`Failed to load members: ${error.message}`);
   return (data ?? []) as Profile[];
 }
+
+export const MEMBERS_PAGE_SIZE = 10;
+
+/** Paginated member search by name or email — for the Members page. */
+export async function searchMembers(q: string | undefined, page = 1) {
+  const supabase = await createClient();
+  let query = supabase.from("profiles").select("*", { count: "exact" });
+  // Strip characters that would break PostgREST's .or() filter syntax.
+  const term = (q ?? "").replace(/[(),]/g, " ").trim();
+  if (term) {
+    query = query.or(`full_name.ilike.%${term}%,email.ilike.%${term}%`);
+  }
+  const offset = (Math.max(page, 1) - 1) * MEMBERS_PAGE_SIZE;
+  const { data, error, count } = await query
+    .order("full_name")
+    .range(offset, offset + MEMBERS_PAGE_SIZE - 1);
+  if (error) throw new Error(`Failed to load members: ${error.message}`);
+  return { members: (data ?? []) as Profile[], total: count ?? 0 };
+}

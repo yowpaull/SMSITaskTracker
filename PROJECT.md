@@ -85,7 +85,7 @@ The current schema does not include task ownership or assignment. If multi-user 
 9. Keep secrets out of source control. Use environment variables; never expose the Supabase service-role key in client-side code.
 10. Enable Row Level Security (RLS) on tables exposed through the Supabase API and write policies that match the intended roles and data access. Do not assume that checking a role in the UI is sufficient authorization.
 11. Protect the `profiles.role` field. Ordinary users must not be able to promote themselves to `admin`; use trusted server-side logic or restrictive database policies.
-12. Use soft deactivation (`is_active = false`) for brands, categories, subcategories, and task definitions when historical records may still reference them.
+12. Use soft deactivation (`is_active = false`) for brands, categories, subcategories, task definitions, and member accounts when historical records may still reference them. Deactivated accounts cannot sign in and are bounced to the login page by `requireUser`.
 13. Keep task status values consistent across database constraints, TypeScript types, forms, filters, and dashboard counts.
 14. Add or update tests when changing important behavior. Run the relevant lint, type-check, test, and build scripts available in the project.
 15. Keep the UI simple, responsive, accessible, and consistent with existing design patterns.

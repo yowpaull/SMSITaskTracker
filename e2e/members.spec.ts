@@ -40,27 +40,41 @@ test.describe("Members (admin)", () => {
     await expect(row).toContainText(name);
     await expect(row.getByText("Member", { exact: true })).toBeVisible();
 
-    // --- Role roundtrip ---
-    await row.getByRole("button", { name: /Manage/ }).click();
-    await page.getByRole("menuitem", { name: "Make admin" }).click();
-    await expect(row.getByText("Admin", { exact: true })).toBeVisible();
+    // --- Role roundtrip (via the manage page) ---
+    const summary = page.locator('[aria-label="Member summary"]');
+    await row.getByRole("link", { name: /Manage/ }).click();
+    await page.waitForURL(/\/members\/[0-9a-f-]+$/);
+    await page.getByRole("button", { name: "Make admin" }).click();
+    await expect(page.getByText("Member is now an admin.")).toBeVisible();
+    await expect(summary.getByText("Admin", { exact: true })).toBeVisible();
 
-    await row.getByRole("button", { name: /Manage/ }).click();
-    await page.getByRole("menuitem", { name: "Make member" }).click();
-    await expect(row.getByText("Member", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Make member" }).click();
+    await expect(page.getByText("Member is now a user.")).toBeVisible();
+    await expect(summary.getByText("Member", { exact: true })).toBeVisible();
 
     // --- Deactivate → reactivate ---
-    await row.getByRole("button", { name: /Manage/ }).click();
-    await page.getByRole("menuitem", { name: "Deactivate account" }).click();
-    await expect(row.getByText("Deactivated", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Deactivate account" }).click();
+    await expect(
+      page.getByText("Account deactivated. They can no longer sign in."),
+    ).toBeVisible();
+    await expect(
+      summary.getByText("Deactivated", { exact: true }),
+    ).toBeVisible();
 
-    await row.getByRole("button", { name: /Manage/ }).click();
-    await page.getByRole("menuitem", { name: "Activate account" }).click();
-    await expect(row.getByText("Active", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Activate account" }).click();
+    await expect(
+      page.getByText("Account activated. They can sign in again."),
+    ).toBeVisible();
+    await expect(summary.getByText("Active", { exact: true })).toBeVisible();
 
-    // --- Clear the search ---
-    await page.getByRole("button", { name: "Clear", exact: true }).click();
-    await page.waitForURL((url) => url.pathname === "/members" && url.search === "");
+    // --- Back to the unfiltered list ---
+    // BackButton renders as <a role="button"> (Base UI Button render quirk)
+    // and links to plain /members.
+    await page.getByRole("button", { name: "Back to members" }).click();
+    await page.waitForURL(
+      (url) => url.pathname === "/members" && url.search === "",
+    );
+    await expect(page.getByText("All members")).toBeVisible();
   });
 
   test("search with no matches shows a friendly message", async ({ page }) => {
@@ -78,6 +92,24 @@ test.describe("Members (admin)", () => {
     const row = page.getByRole("row").filter({ hasText: adminEmail });
     await expect(row).toBeVisible();
     await expect(row.getByText("It's you")).toBeVisible();
+  });
+
+  test("department filter scopes the list and All departments resets it", async ({ page }) => {
+    await page.goto("/members");
+    const filter = page.getByRole("combobox", { name: "Filter by department" });
+    await expect(filter).toBeVisible();
+
+    // Unassigned narrows the URL; All departments clears it again.
+    await filter.click();
+    await page.getByRole("option", { name: "Unassigned", exact: true }).click();
+    await page.waitForURL(/department=unassigned/);
+
+    await filter.click();
+    await page.getByRole("option", { name: "All departments" }).click();
+    await page.waitForURL(
+      (url) => url.pathname === "/members" && !url.searchParams.has("department"),
+    );
+    await expect(page.getByText("All members")).toBeVisible();
   });
 
   test("pagination appears only with more than one page", async ({ page }) => {

@@ -42,11 +42,13 @@ export async function createTaskLog(
     };
   }
 
-  // Non-admins may only assign logs to themselves; RLS enforces the same.
-  const assignedTo =
-    profile.role === "admin"
-      ? (parsed.data.assigned_to ?? profile.id)
-      : profile.id;
+  // Admins and Department Heads may assign to others (RLS enforces that
+  // heads only reach their own department's members); everyone else to self.
+  const canAssignOthers =
+    profile.role === "admin" || profile.is_department_head;
+  const assignedTo = canAssignOthers
+    ? (parsed.data.assigned_to ?? profile.id)
+    : profile.id;
 
   const supabase = await createClient();
   const { error } = await supabase.from("task_logs").insert({
@@ -61,6 +63,12 @@ export async function createTaskLog(
   });
 
   if (error) {
+    if (profile.is_department_head && profile.role !== "admin") {
+      return {
+        error:
+          "Could not create task log. Department heads can only assign to members of their own department.",
+      };
+    }
     return { error: `Could not create task log: ${error.message}` };
   }
 
@@ -105,7 +113,8 @@ export async function updateTaskLog(
     .update({
       task_id: parsed.data.task_id,
       brand_id: parsed.data.brand_id,
-      ...(profile.role === "admin" && parsed.data.assigned_to
+      ...(profile.role === "admin" ||
+        (profile.is_department_head && parsed.data.assigned_to)
         ? { assigned_to: parsed.data.assigned_to }
         : {}),
       status,

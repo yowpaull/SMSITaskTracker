@@ -13,8 +13,20 @@ Use PostgreSQL through Supabase. Keep identifiers and relationships consistent w
 - `full_name text` — required
 - `email text` — required and unique
 - `role text` — required; allowed values should be restricted to `admin` and `user`
+- `is_active boolean` — default `true`; deactivated accounts cannot sign in
+- `department_id uuid` — optional foreign key to `departments(id)`; `NULL` means Unassigned
+- `is_department_head boolean` — default `false`; a head heads the department they belong to (DB check: a head must have a `department_id`)
 - `created_at timestamptz` — default `now()`
 - `updated_at timestamptz` — default `now()`
+
+### `departments`
+- `id uuid` — primary key, default `gen_random_uuid()`
+- `name text` — required and unique
+- `is_active boolean` — default `true`
+- `created_at timestamptz` — default `now()`
+- `updated_at timestamptz` — default `now()`
+
+Soft-deactivate departments (`is_active = false`); members keep their assignment. Hard delete fails while any head still references the department.
 
 ### `brands`
 - `id uuid` — primary key, default `gen_random_uuid()`
@@ -65,10 +77,19 @@ If the existing database uses different column names, inspect the actual schema 
 ## Relationships
 
 - `auth.users.id` → `profiles.id` (one-to-one)
+- `departments.id` → `profiles.department_id` (one-to-many; a department may have multiple heads via `is_department_head`)
 - `categories.id` → `subcategories.category_id` (one-to-many)
 - `subcategories.id` → `tasks.subcategory_id` (one-to-many)
 - `tasks.id` → `task_logs.task_id` (one-to-many)
 - `brands.id` → `task_logs.brand_id` (one-to-many)
+
+## Departments and Heads
+
+- Departments group PEOPLE only; brands and task definitions stay organization-wide. Progress for a department = task logs whose `assigned_to` member belongs to it.
+- Admins see overall progress per department (dashboard rollup incl. an "Unassigned" bucket), manage all departments, roles, and head assignments.
+- Department Heads (multiple per department allowed) see only their own department: dashboard stats, member list, and they manage their members (create into their department, activate/deactivate, move members in) and may assign/edit task logs for their members. Deleting logs stays admin-only.
+- profiles writes by heads go through SECURITY DEFINER server actions using the service client (`SUPABASE_SECRET_KEY`) with explicit same-department checks, because the RLS UPDATE policy on `profiles` is admin-only (RLS cannot restrict columns). task_logs head writes go through RLS policies using `is_head_of_profile()`.
+- Existing members without a department stay `department_id = NULL` until an admin assigns them.
 
 The current schema does not include task ownership or assignment. If multi-user ownership or assignment is required, propose and migrate explicit fields such as `created_by` and `assigned_to` referencing `profiles(id)`. Do not assume those fields already exist.
 
@@ -85,7 +106,7 @@ The current schema does not include task ownership or assignment. If multi-user 
 9. Keep secrets out of source control. Use environment variables; never expose the Supabase service-role key in client-side code.
 10. Enable Row Level Security (RLS) on tables exposed through the Supabase API and write policies that match the intended roles and data access. Do not assume that checking a role in the UI is sufficient authorization.
 11. Protect the `profiles.role` field. Ordinary users must not be able to promote themselves to `admin`; use trusted server-side logic or restrictive database policies.
-12. Use soft deactivation (`is_active = false`) for brands, categories, subcategories, task definitions, and member accounts when historical records may still reference them. Deactivated accounts cannot sign in and are bounced to the login page by `requireUser`.
+12. Use soft deactivation (`is_active = false`) for brands, categories, subcategories, task definitions, departments, and member accounts when historical records may still reference them. Deactivated accounts cannot sign in and are bounced to the login page by `requireUser`.
 13. Keep task status values consistent across database constraints, TypeScript types, forms, filters, and dashboard counts.
 14. Add or update tests when changing important behavior. Run the relevant lint, type-check, test, and build scripts available in the project.
 15. Keep the UI simple, responsive, accessible, and consistent with existing design patterns.

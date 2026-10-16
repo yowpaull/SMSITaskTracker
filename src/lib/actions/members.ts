@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -29,6 +29,7 @@ export async function createMember(
     password: formDataValue(formData, "password"),
     full_name: formDataValue(formData, "full_name"),
     role: formDataValue(formData, "role"),
+    department_id: formDataValue(formData, "department_id") ?? null,
   });
 
   if (!parsed.success) {
@@ -59,16 +60,21 @@ export async function createMember(
     return { error: `Could not create member: ${error.message}` };
   }
 
-  if (parsed.data.role === "admin" && data.user) {
+  const profileUpdate: { role?: "admin"; department_id: string | null } = {
+    department_id: parsed.data.department_id ?? null,
+  };
+  if (parsed.data.role === "admin") profileUpdate.role = "admin";
+
+  if (data.user) {
     const supabase = await createClient();
-    const { error: roleError } = await supabase
+    const { error: profileError } = await supabase
       .from("profiles")
-      .update({ role: "admin" })
+      .update(profileUpdate)
       .eq("id", data.user.id);
-    if (roleError) {
+    if (profileError) {
       revalidatePath("/members");
       return {
-        error: `Member created, but role could not be set: ${roleError.message}`,
+        error: `Member created, but profile could not be set: ${profileError.message}`,
       };
     }
   }
@@ -104,6 +110,7 @@ export async function updateMemberRole(
   }
 
   revalidatePath("/members");
+  revalidatePath(`/members/${parsed.data.id}`);
   revalidatePath("/tasks");
   return {
     success:
@@ -117,32 +124,82 @@ export async function setMemberActive(
   id: string,
   isActive: boolean,
 ): Promise<ActionResult> {
-  const adminProfile = await requireAdmin();
+  const profile = await requireProfile();
 
   const parsed = memberIdSchema.safeParse({ id });
   if (!parsed.success) {
     return { error: "Invalid member." };
   }
 
-  if (parsed.data.id === adminProfile.id) {
+  if (parsed.data.id === profile.id) {
     return { error: "You cannot deactivate your own account." };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  if (profile.role === "admin") {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ is_active: isActive })
+      .eq("id", parsed.data.id)
+      .select("id");
+
+    if (error) {
+      return { error: `Could not update account: ${error.message}` };
+    }
+    if (!data || data.length === 0) {
+      return { error: "Member not found." };
+    }
+
+    revalidatePath("/members");
+    revalidatePath(`/members/${parsed.data.id}`);
+    revalidatePath("/tasks");
+    return {
+      success: isActive
+        ? "Account activated. They can sign in again."
+        : "Account deactivated. They can no longer sign in.",
+    };
+  }
+
+  // Department Heads manage accounts of their own members via the service
+  // client (profiles UPDATE RLS is admin-only).
+  if (!profile.is_department_head || !profile.department_id) {
+    return { error: "Only admins or department heads can change accounts." };
+  }
+
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error
+          ? err.message
+          : "Admin client is not configured. Set SUPABASE_SECRET_KEY in .env.local.",
+    };
+  }
+
+  const { data: target } = await admin
+    .from("profiles")
+    .select("id, department_id")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+  if (!target) {
+    return { error: "Member not found." };
+  }
+  if (target.department_id !== profile.department_id) {
+    return { error: "You can only manage members of your department." };
+  }
+
+  const { error } = await admin
     .from("profiles")
     .update({ is_active: isActive })
-    .eq("id", parsed.data.id)
-    .select("id");
-
+    .eq("id", parsed.data.id);
   if (error) {
     return { error: `Could not update account: ${error.message}` };
   }
-  if (!data || data.length === 0) {
-    return { error: "Member not found." };
-  }
 
   revalidatePath("/members");
+  revalidatePath(`/members/${parsed.data.id}`);
   revalidatePath("/tasks");
   return {
     success: isActive

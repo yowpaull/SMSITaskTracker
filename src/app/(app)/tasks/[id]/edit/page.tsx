@@ -34,12 +34,13 @@ async function TaskLogEditContent({
   if (!log) notFound();
 
   const profile = await requireProfile();
-  const isAdmin = profile.role === "admin";
+  const canAssignOthers =
+    profile.role === "admin" || profile.is_department_head;
 
   const [brands, taskGroups, members] = await Promise.all([
     listBrands(),
     listTaskPickGroups(),
-    isAdmin ? listMembers() : Promise.resolve([]),
+    canAssignOthers ? listMembers() : Promise.resolve([]),
   ]);
 
   return (
@@ -53,7 +54,7 @@ async function TaskLogEditContent({
           <TaskLogForm
             action={updateTaskLog}
             mode="update"
-            isAdmin={isAdmin}
+            canAssignOthers={canAssignOthers}
             initial={log}
             cancelHref="/tasks"
             brands={brands.map((brand) => ({

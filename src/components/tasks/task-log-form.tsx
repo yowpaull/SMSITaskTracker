@@ -63,7 +63,7 @@ function findTaskLocation(
 export function TaskLogForm({
   action,
   mode,
-  isAdmin,
+  canAssignOthers,
   brands,
   taskGroups,
   members,
@@ -76,7 +76,7 @@ export function TaskLogForm({
     formData: FormData,
   ) => Promise<TaskLogActionState>;
   mode: "create" | "update";
-  isAdmin: boolean;
+  canAssignOthers: boolean;
   brands: OptionItem[];
   taskGroups: TaskPickGroup[];
   members: OptionItem[];
@@ -352,7 +352,7 @@ export function TaskLogForm({
           </Field>
         )}
 
-        {isAdmin && (
+        {canAssignOthers && (
           <Field>
             <FieldLabel htmlFor="assignee-select">Assign to</FieldLabel>
             <Select

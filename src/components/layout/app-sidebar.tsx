@@ -20,7 +20,12 @@ import { requireProfile } from "@/lib/auth";
 
 async function SidebarNavContent() {
   const profile = await requireProfile();
-  return <AppSidebarNav isAdmin={profile.role === "admin"} />;
+  return (
+    <AppSidebarNav
+      isAdmin={profile.role === "admin"}
+      isHead={profile.is_department_head}
+    />
+  );
 }
 
 async function SidebarFooterContent() {

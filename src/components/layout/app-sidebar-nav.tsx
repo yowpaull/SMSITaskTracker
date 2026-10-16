@@ -8,6 +8,7 @@ import {
   ListChecksIcon,
   ListPlusIcon,
   UsersIcon,
+  UsersRoundIcon,
 } from "lucide-react";
 import {
   SidebarMenu,
@@ -21,7 +22,7 @@ const NAV_ITEMS = [
     href: "/dashboard",
     label: "Dashboard",
     icon: LayoutDashboardIcon,
-    adminOnly: true,
+    staffOnly: true,
   },
   { href: "/tasks", label: "Tasks", icon: ListChecksIcon },
   { href: "/create-task", label: "Create Task", icon: ListPlusIcon },
@@ -32,22 +33,36 @@ const NAV_ITEMS = [
     adminOnly: true,
   },
   {
+    href: "/departments",
+    label: "Departments",
+    icon: UsersRoundIcon,
+    adminOnly: true,
+  },
+  {
     href: "/members",
     label: "Members",
     icon: UsersIcon,
-    adminOnly: true,
+    staffOnly: true,
   },
 ] as const;
 
-export function AppSidebarNav({ isAdmin }: { isAdmin: boolean }) {
+export function AppSidebarNav({
+  isAdmin,
+  isHead,
+}: {
+  isAdmin: boolean;
+  isHead: boolean;
+}) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
 
   return (
     <SidebarMenu>
-      {NAV_ITEMS.filter(
-        (item) => !("adminOnly" in item && item.adminOnly) || isAdmin,
-      ).map((item) => {
+      {NAV_ITEMS.filter((item) => {
+        if ("adminOnly" in item && item.adminOnly) return isAdmin;
+        if ("staffOnly" in item && item.staffOnly) return isAdmin || isHead;
+        return true;
+      }).map((item) => {
         const active =
           pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (

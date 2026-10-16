@@ -250,8 +250,17 @@ export async function listMembers() {
 
 export const MEMBERS_PAGE_SIZE = 10;
 
-/** Paginated member search by name or email — for the Members page. */
-export async function searchMembers(q: string | undefined, page = 1) {
+/**
+ * Paginated member search by name or email — for the Members page.
+ * `departmentId` filters to one department, "unassigned" to members without
+ * a department (heads get their own department applied on top of this by
+ * the caller; RLS also restricts what a head can read).
+ */
+export async function searchMembers(
+  q: string | undefined,
+  page = 1,
+  departmentId?: string | "unassigned",
+) {
   const supabase = await createClient();
   let query = supabase.from("profiles").select("*", { count: "exact" });
   // Strip characters that would break PostgREST's .or() filter syntax.
@@ -259,10 +268,31 @@ export async function searchMembers(q: string | undefined, page = 1) {
   if (term) {
     query = query.or(`full_name.ilike.%${term}%,email.ilike.%${term}%`);
   }
+  if (departmentId === "unassigned") {
+    query = query.is("department_id", null);
+  } else if (departmentId) {
+    query = query.eq("department_id", departmentId);
+  }
   const offset = (Math.max(page, 1) - 1) * MEMBERS_PAGE_SIZE;
   const { data, error, count } = await query
-    .order("full_name")
+    .order("created_at", { ascending: false })
     .range(offset, offset + MEMBERS_PAGE_SIZE - 1);
   if (error) throw new Error(`Failed to load members: ${error.message}`);
   return { members: (data ?? []) as Profile[], total: count ?? 0 };
+}
+
+/**
+ * Loads one member for the manage page. RLS limits department heads to
+ * their own department; a null return means the member does not exist or
+ * is not visible to the viewer.
+ */
+export async function getMemberById(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to load member: ${error.message}`);
+  return (data ?? null) as Profile | null;
 }

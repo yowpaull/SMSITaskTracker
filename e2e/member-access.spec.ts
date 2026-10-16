@@ -16,7 +16,7 @@ test.describe("Member access (non-admin)", () => {
     await expect(
       page.getByRole("link", { name: "Create Task", exact: true }),
     ).toBeVisible();
-    for (const name of ["Dashboard", "Brands", "Members"]) {
+    for (const name of ["Dashboard", "Brands", "Departments", "Members"]) {
       await expect(
         page.getByRole("link", { name, exact: true }),
       ).toHaveCount(0);
@@ -24,11 +24,17 @@ test.describe("Member access (non-admin)", () => {
   });
 
   test("admin pages redirect members to /tasks", async ({ page }) => {
-    for (const path of ["/dashboard", "/brands", "/members"]) {
+    for (const path of ["/dashboard", "/brands", "/departments", "/members"]) {
       await page.goto(path);
       await page.waitForURL(/\/tasks/);
       expect(page.url()).not.toContain(path);
     }
+  });
+
+  test("members cannot open member manage pages", async ({ page }) => {
+    await page.goto("/members/00000000-0000-0000-0000-000000000000");
+    await page.waitForURL(/\/tasks/);
+    expect(page.url()).not.toContain("/members/");
   });
 
   test("tasks page shows personal KPI cards for members", async ({ page }) => {

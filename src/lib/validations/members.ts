@@ -10,6 +10,7 @@ export const createMemberSchema = z.object({
     .max(128),
   full_name: z.string().trim().min(1, "Full name is required.").max(120),
   role: memberRoleSchema,
+  department_id: z.uuid().nullable().optional(),
 });
 
 export const updateMemberRoleSchema = z.object({

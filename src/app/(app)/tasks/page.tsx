@@ -107,8 +107,9 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
     listBrands(true),
     listSubcategoriesWithLabels(true),
     listMembers(),
-    // Non-admins see KPIs for their own logs; admins use the dashboard.
-    isAdmin ? Promise.resolve(null) : getMyTaskStats(),
+    // Personal KPI cards for plain members only — here the list is already
+    // their own. Admins and heads use /my-tasks for the personal view.
+    !isAdmin && !profile.is_department_head ? getMyTaskStats() : Promise.resolve(null),
   ]);
 
   // Department Heads (and admins) see the assignee filter; RLS restricts

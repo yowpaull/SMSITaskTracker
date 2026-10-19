@@ -1,7 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireProfile } from "@/lib/auth";
+import {
+  requireAdmin,
+  requireProfile,
+  requireStaffProfile,
+} from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -22,7 +26,8 @@ export async function createMember(
   _prevState: MemberActionState,
   formData: FormData,
 ): Promise<MemberActionState> {
-  await requireAdmin();
+  const viewer = await requireStaffProfile();
+  const isAdmin = viewer.role === "admin";
 
   const parsed = createMemberSchema.safeParse({
     email: formDataValue(formData, "email"),
@@ -37,6 +42,13 @@ export async function createMember(
       error: parsed.error.issues[0]?.message ?? "Check the form values.",
     };
   }
+
+  // Department Heads always create plain members inside their own
+  // department; role and department come from the viewer, not the form.
+  const role = isAdmin ? parsed.data.role : "user";
+  const departmentId = isAdmin
+    ? (parsed.data.department_id ?? null)
+    : viewer.department_id;
 
   let admin: ReturnType<typeof createAdminClient>;
   try {
@@ -61,13 +73,14 @@ export async function createMember(
   }
 
   const profileUpdate: { role?: "admin"; department_id: string | null } = {
-    department_id: parsed.data.department_id ?? null,
+    department_id: departmentId,
   };
-  if (parsed.data.role === "admin") profileUpdate.role = "admin";
+  if (role === "admin") profileUpdate.role = "admin";
 
   if (data.user) {
-    const supabase = await createClient();
-    const { error: profileError } = await supabase
+    // Service client: the profiles UPDATE RLS policy is admin-only, so a
+    // head assigning their own department needs it (same as setMemberActive).
+    const { error: profileError } = await admin
       .from("profiles")
       .update(profileUpdate)
       .eq("id", data.user.id);

@@ -34,12 +34,14 @@ export function TaskFilters({
   categoryOptions,
   memberOptions,
   showAssigneeFilter,
+  basePath = "/tasks",
 }: {
   filters: TaskFilterValues;
   brandOptions: OptionItem[];
   categoryOptions: OptionItem[];
   memberOptions: OptionItem[];
   showAssigneeFilter: boolean;
+  basePath?: string;
 }) {
   const router = useRouter();
   const [q, setQ] = useState(filters.q ?? "");
@@ -55,7 +57,7 @@ export function TaskFilters({
     if (next.from) params.set("from", next.from);
     if (next.to) params.set("to", next.to);
     const qs = params.toString();
-    router.replace(qs ? `/tasks?${qs}` : "/tasks", { scroll: false });
+    router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
   }
 
   const statusItems = [

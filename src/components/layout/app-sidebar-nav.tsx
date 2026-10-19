@@ -7,6 +7,7 @@ import {
   LayoutDashboardIcon,
   ListChecksIcon,
   ListPlusIcon,
+  UserRoundIcon,
   UsersIcon,
   UsersRoundIcon,
 } from "lucide-react";
@@ -25,6 +26,12 @@ const NAV_ITEMS = [
     staffOnly: true,
   },
   { href: "/tasks", label: "Tasks", icon: ListChecksIcon },
+  {
+    href: "/my-tasks",
+    label: "My Tasks",
+    icon: UserRoundIcon,
+    staffOnly: true,
+  },
   { href: "/create-task", label: "Create Task", icon: ListPlusIcon },
   {
     href: "/brands",

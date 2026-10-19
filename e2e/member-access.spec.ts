@@ -16,7 +16,13 @@ test.describe("Member access (non-admin)", () => {
     await expect(
       page.getByRole("link", { name: "Create Task", exact: true }),
     ).toBeVisible();
-    for (const name of ["Dashboard", "Brands", "Departments", "Members"]) {
+    for (const name of [
+      "Dashboard",
+      "My Tasks",
+      "Brands",
+      "Departments",
+      "Members",
+    ]) {
       await expect(
         page.getByRole("link", { name, exact: true }),
       ).toHaveCount(0);
@@ -24,7 +30,13 @@ test.describe("Member access (non-admin)", () => {
   });
 
   test("admin pages redirect members to /tasks", async ({ page }) => {
-    for (const path of ["/dashboard", "/brands", "/departments", "/members"]) {
+    for (const path of [
+      "/dashboard",
+      "/brands",
+      "/departments",
+      "/members",
+      "/my-tasks",
+    ]) {
       await page.goto(path);
       await page.waitForURL(/\/tasks/);
       expect(page.url()).not.toContain(path);

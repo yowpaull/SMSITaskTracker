@@ -5,7 +5,7 @@ test.describe("Departments", () => {
   test.skip(!hasAdminCreds, MISSING_ADMIN);
 
   test("admin CRUD + head scoping + unassigned bucket", async ({ page }) => {
-    test.setTimeout(180_000);
+    test.setTimeout(240_000);
     const stamp = Date.now();
     const deptName = uniqueName("E2E Dept");
     const headEmail = `e2e-dept-head-${stamp}@example.com`;
@@ -14,6 +14,8 @@ test.describe("Departments", () => {
     const memberName = `E2E Dept Member ${stamp}`;
     const mateEmail = `e2e-dept-mate-${stamp}@example.com`;
     const mateName = `E2E Dept Mate ${stamp}`;
+    const childEmail = `e2e-dept-child-${stamp}@example.com`;
+    const childName = `E2E Dept Child ${stamp}`;
     const password = "Password123!";
 
     // --- Admin: create the department ---
@@ -121,6 +123,14 @@ test.describe("Departments", () => {
       page.getByRole("link", { name: "Departments", exact: true }),
     ).toHaveCount(0);
 
+    // Head My Tasks: personal KPI cards and no assignee filter.
+    await page.getByRole("link", { name: "My Tasks", exact: true }).click();
+    await page.waitForURL(/\/my-tasks/);
+    await expect(
+      page.locator('[aria-label="Overall progress"]').first(),
+    ).toBeVisible();
+    await expect(page.getByText("All assignees")).toHaveCount(0);
+
     // Head can open the manage page of a member of their own department.
     await page.goto(`/members?q=${encodeURIComponent(mateEmail)}`);
     await page
@@ -138,7 +148,30 @@ test.describe("Departments", () => {
 
     // Head members page: only their department; the unassigned member is invisible.
     await page.goto("/members");
-    await expect(page.getByText("Your department")).toBeVisible();
+    await expect(
+      page.getByText("Your department", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("New members are added to your department."),
+    ).toBeVisible();
+
+    // Head can create a member, who lands in the head's own department.
+    await page.locator("#member-name").fill(childName);
+    await page.locator("#member-email").fill(childEmail);
+    await page.locator("#member-password").fill(password);
+    await page.getByRole("button", { name: "Create member" }).click();
+    const childToast = page.getByText("Member created. They can sign in now.");
+    await expect(childToast).toBeVisible();
+    await childToast.waitFor({ state: "detached" });
+
+    await page.getByLabel("Search members").fill(childEmail);
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.waitForURL(/\/members\?q=/);
+    const childRow = page.getByRole("row").filter({ hasText: childEmail });
+    await expect(childRow).toContainText(deptName);
+    await expect(childRow.getByText("Member", { exact: true })).toBeVisible();
+
+    // The unassigned member stays invisible to the head.
     await page.getByLabel("Search members").fill(memberEmail);
     await page.getByRole("button", { name: "Search", exact: true }).click();
     await page.waitForURL(/\/members\?q=/);
@@ -155,7 +188,7 @@ test.describe("Departments", () => {
     await expect(page).toHaveURL(/\/login/);
     await login(page, "admin");
 
-    for (const email of [headEmail, mateEmail, memberEmail]) {
+    for (const email of [headEmail, mateEmail, childEmail, memberEmail]) {
       await page.goto(`/members?q=${encodeURIComponent(email)}`);
       const row = page.getByRole("row").filter({ hasText: email });
       await row.getByRole("link", { name: /Manage/ }).click();

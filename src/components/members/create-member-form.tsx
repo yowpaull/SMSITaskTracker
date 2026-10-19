@@ -67,6 +67,11 @@ export function CreateMemberForm({
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Add member</CardTitle>
+        {!viewerIsAdmin && (
+          <p className="text-muted-foreground text-sm">
+            New members are added to your department.
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <form action={formAction} className="grid gap-4">

@@ -8,7 +8,15 @@ test.describe("App shell", () => {
   });
 
   test("sidebar shows all links and marks the active page", async ({ page }) => {
-    for (const name of ["Dashboard", "Tasks", "Create Task", "Brands", "Departments", "Members"]) {
+    for (const name of [
+      "Dashboard",
+      "Tasks",
+      "My Tasks",
+      "Create Task",
+      "Brands",
+      "Departments",
+      "Members",
+    ]) {
       await expect(
         page.getByRole("link", { name, exact: true }),
       ).toBeVisible();

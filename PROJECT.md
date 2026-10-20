@@ -94,6 +94,13 @@ If the existing database uses different column names, inspect the actual schema 
 
 The current schema does not include task ownership or assignment. If multi-user ownership or assignment is required, propose and migrate explicit fields such as `created_by` and `assigned_to` referencing `profiles(id)`. Do not assume those fields already exist.
 
+## Password Recovery
+
+- Self-service only: **Forgot password?** on `/login` → `/forgot-password` sends a Supabase recovery email (project uses custom SMTP). The Recovery email template link must be `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password`, with **Site URL** in Dashboard → Auth set to the app origin (e.g. `http://localhost:3000`). No Redirect URL allow-list entry is needed.
+- `/auth/confirm` exchanges the single-use token for a session, validating `type=recovery` and treating `next` as a same-origin path only (no open redirects), then continues to `/reset-password`.
+- `/reset-password` renders only with that session (new password min 8 + confirm match); missing/failed links show an invalid-link state with a request-new-link action, and a deactivated account's recovery session is bounced to `/login?deactivated=1`.
+- `/forgot-password` always answers with the same generic "if an account exists…" response — including for unknown emails and rate-limit failures — so responses never reveal whether an account exists (rate-limit details go to server logs only).
+
 ## Development Rules
 
 1. Inspect the existing project structure, package scripts, schema, and migrations before making changes.

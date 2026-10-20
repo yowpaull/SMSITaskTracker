@@ -22,6 +22,20 @@ test.describe("Auth", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
+  test("password field can be revealed and re-hidden", async ({ page }) => {
+    await page.goto("/login");
+    const password = page.locator("#password");
+    await password.fill("s3cret-value");
+
+    await page.getByRole("button", { name: "Show password" }).click();
+    await expect(password).toHaveAttribute("type", "text");
+    await expect(password).toHaveValue("s3cret-value");
+
+    await page.getByRole("button", { name: "Hide password" }).click();
+    await expect(password).toHaveAttribute("type", "password");
+    await expect(password).toHaveValue("s3cret-value");
+  });
+
   test("admin can sign in and sign out", async ({ page }) => {
     test.skip(!hasAdminCreds, MISSING_ADMIN);
 

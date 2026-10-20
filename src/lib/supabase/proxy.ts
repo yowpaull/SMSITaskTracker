@@ -37,9 +37,15 @@ export async function updateSession(request: NextRequest) {
   const user = data?.claims;
 
   const path = request.nextUrl.pathname;
-  const isAuthRoute = path.startsWith("/login");
+  const isAuthRoute =
+    path.startsWith("/login") || path.startsWith("/forgot-password");
+  // Recovery is reachable in both auth states: /auth/confirm exchanges the
+  // email token (and may run while signed out), /reset-password renders the
+  // form with a fresh session or an invalid-link state without one.
+  const isRecoveryRoute =
+    path.startsWith("/reset-password") || path.startsWith("/auth/confirm");
 
-  if (!user && !isAuthRoute) {
+  if (!user && !isAuthRoute && !isRecoveryRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";

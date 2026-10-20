@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { requireProfile } from "@/lib/auth";
+import { requireStaffProfile } from "@/lib/auth";
 import {
   listCategoryHierarchy,
   listSubcategoriesWithLabels,
@@ -170,7 +170,8 @@ function SubcategorySection({
 }
 
 async function CreateTaskContent() {
-  const profile = await requireProfile();
+  // Task definitions are created by admins and department heads only.
+  const profile = await requireStaffProfile();
   const isAdmin = profile.role === "admin";
   const [categories, subcategories] = await Promise.all([
     listCategoryHierarchy(),
@@ -297,7 +298,7 @@ export default function CreateTaskPage() {
     <div className="grid gap-4">
       <PageHeader
         title="Create Task"
-        description="Main categories → subcategories → tasks. Everyone can add; only admins can edit or deactivate."
+        description="Main categories → subcategories → tasks. Admins and department heads can add; only admins edit or deactivate."
         action={<AddCategoryDialog />}
       />
       <Suspense fallback={<CreateTaskSkeleton />}>

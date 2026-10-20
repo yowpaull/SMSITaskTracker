@@ -1,8 +1,8 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 const adminEmail = process.env.E2E_ADMIN_EMAIL;
 const adminPassword = process.env.E2E_ADMIN_PASSWORD;
-const memberEmail = process.env.E2E_MEMBER_EMAIL;
+export const memberEmail = process.env.E2E_MEMBER_EMAIL;
 const memberPassword = process.env.E2E_MEMBER_PASSWORD;
 
 export const hasAdminCreds = Boolean(adminEmail && adminPassword);
@@ -38,6 +38,13 @@ export function daysFromNow(days: number) {
 
 /** Parse "Showing x–y of N logs" on /tasks; 0 when the list is empty. */
 export async function readLogTotal(page: Page): Promise<number> {
+  // Wait for the streamed list (PPR) — a cold read right after goto can
+  // race the stream and wrongly return 0.
+  await expect(
+    page
+      .getByText(/of \d+ logs?|No task logs found/)
+      .first(),
+  ).toBeVisible({ timeout: 15_000 });
   const text = await page
     .getByText(/of \d+ logs?/)
     .textContent()
@@ -57,12 +64,22 @@ export async function trySelectOptionAt(
 ): Promise<boolean> {
   const selector = id.startsWith("#") ? id : `#${id}`;
   await page.locator(selector).click();
-  const count = await page.getByRole("option").count();
+  // Scope to visible options: closed or reloading popups leave hidden
+  // option nodes in the DOM that count() would include and click() would
+  // hang on. Wait out the async popup render before deciding.
+  const visible = page.locator('[role="option"]:visible');
+  try {
+    await expect(visible.first()).toBeVisible({ timeout: 8_000 });
+  } catch {
+    await page.keyboard.press("Escape");
+    return false;
+  }
+  const count = await visible.count();
   if (count <= index) {
     await page.keyboard.press("Escape");
     return false;
   }
-  await page.getByRole("option").nth(index).click();
+  await visible.nth(index).click();
   return true;
 }
 

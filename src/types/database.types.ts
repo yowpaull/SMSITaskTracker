@@ -102,35 +102,73 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
+          department_id: string | null
           email: string
           full_name: string
           id: string
           is_active: boolean
+          is_department_head: boolean
           role: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          department_id?: string | null
           email: string
           full_name?: string
           id: string
           is_active?: boolean
+          is_department_head?: boolean
           role?: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          department_id?: string | null
           email?: string
           full_name?: string
           id?: string
           is_active?: boolean
+          is_department_head?: boolean
           role?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_logs: {
         Row: {
@@ -247,6 +285,8 @@ export type Database = {
     }
     Functions: {
       is_admin: { Args: never; Returns: boolean }
+      is_department_head: { Args: never; Returns: boolean }
+      is_head_of_profile: { Args: { target: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

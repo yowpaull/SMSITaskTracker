@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { PageHeader } from "@/components/shared/page-header";
 import { Pagination } from "@/components/shared/pagination";
 import { CreateMemberForm } from "@/components/members/create-member-form";
-import { MemberRoleMenu } from "@/components/members/member-role-menu";
+import { DepartmentFilter } from "@/components/members/department-filter";
 import { MemberSearch } from "@/components/members/member-search";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,7 +22,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaffProfile } from "@/lib/auth";
+import { listDepartments } from "@/lib/data/departments";
 import { MEMBERS_PAGE_SIZE, searchMembers } from "@/lib/data/masters";
 import { formatDate } from "@/lib/format";
 
@@ -38,12 +40,29 @@ async function MembersContent({ searchParams }: { searchParams: Promise<Params> 
   const pageRaw = Number.parseInt(first(params.page) ?? "1", 10);
   const page = Number.isNaN(pageRaw) || pageRaw < 1 ? 1 : pageRaw;
 
-  const adminProfile = await requireAdmin();
-  const { members, total } = await searchMembers(q, page);
+  const viewer = await requireStaffProfile();
+  const isAdmin = viewer.role === "admin";
+
+  const departmentParam = first(params.department) || undefined;
+  // Heads always see their own department; admins may filter by any.
+  const departmentFilter: string | "unassigned" | undefined = isAdmin
+    ? departmentParam
+    : (viewer.department_id ?? "unassigned");
+
+  const [departments, { members, total }] = await Promise.all([
+    listDepartments(),
+    searchMembers(q, page, departmentFilter),
+  ]);
+
+  const departmentNameById = new Map(
+    departments.map((department) => [department.id, department.name]),
+  );
+
   const totalPages = Math.max(1, Math.ceil(total / MEMBERS_PAGE_SIZE));
   const buildHref = (target: number) => {
     const sp = new URLSearchParams();
     if (q) sp.set("q", q);
+    if (isAdmin && departmentParam) sp.set("department", departmentParam);
     if (target > 1) sp.set("page", String(target));
     const qs = sp.toString();
     return qs ? `/members?${qs}` : "/members";
@@ -53,15 +72,28 @@ async function MembersContent({ searchParams }: { searchParams: Promise<Params> 
     <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-base">All members</CardTitle>
-          <MemberSearch initialQuery={q ?? ""} />
+          <CardTitle className="text-base">
+            {isAdmin ? "All members" : "Your department"}
+          </CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdmin && (
+              <DepartmentFilter
+                departments={departments}
+                value={departmentParam ?? "all"}
+                query={q}
+              />
+            )}
+            <MemberSearch initialQuery={q ?? ""} />
+          </div>
         </CardHeader>
         <CardContent>
           {total === 0 ? (
             <p className="text-muted-foreground text-sm">
               {q
                 ? `No members match “${q}”.`
-                : "No members yet."}
+                : isAdmin
+                  ? "No members yet."
+                  : "No members in your department yet."}
             </p>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border">
@@ -71,6 +103,7 @@ async function MembersContent({ searchParams }: { searchParams: Promise<Params> 
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Department</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Joined</TableHead>
                     <TableHead className="w-28" />
@@ -86,21 +119,37 @@ async function MembersContent({ searchParams }: { searchParams: Promise<Params> 
                         {member.email}
                       </TableCell>
                       <TableCell>
-                        {member.role === "admin" ? (
-                          <Badge
-                            variant="secondary"
-                            className="border-transparent bg-primary/10 text-primary"
-                          >
-                            Admin
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="secondary"
-                            className="border-transparent bg-secondary text-secondary-foreground"
-                          >
-                            Member
-                          </Badge>
-                        )}
+                        <div className="flex flex-wrap items-center gap-1">
+                          {member.role === "admin" ? (
+                            <Badge
+                              variant="secondary"
+                              className="border-transparent bg-primary/10 text-primary"
+                            >
+                              Admin
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="secondary"
+                              className="border-transparent bg-secondary text-secondary-foreground"
+                            >
+                              Member
+                            </Badge>
+                          )}
+                          {member.is_department_head && (
+                            <Badge
+                              variant="secondary"
+                              className="border-transparent bg-warning/10 text-warning"
+                            >
+                              Head
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {member.department_id
+                          ? (departmentNameById.get(member.department_id) ??
+                            "—")
+                          : "Unassigned"}
                       </TableCell>
                       <TableCell>
                         {member.is_active ? (
@@ -123,12 +172,19 @@ async function MembersContent({ searchParams }: { searchParams: Promise<Params> 
                         {formatDate(member.created_at)}
                       </TableCell>
                       <TableCell>
-                        <MemberRoleMenu
-                          memberId={member.id}
-                          currentRole={member.role}
-                          isActive={member.is_active}
-                          isSelf={member.id === adminProfile.id}
-                        />
+                        {member.id === viewer.id ? (
+                          <span className="text-muted-foreground text-xs">
+                            It&apos;s you
+                          </span>
+                        ) : (
+                          <Link
+                            href={`/members/${member.id}`}
+                            aria-label={`Manage ${member.full_name || member.email}`}
+                            className="font-medium text-xs underline-offset-4 hover:underline"
+                          >
+                            Manage
+                          </Link>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -146,7 +202,14 @@ async function MembersContent({ searchParams }: { searchParams: Promise<Params> 
         </CardContent>
       </Card>
 
-      <CreateMemberForm />
+      <CreateMemberForm
+        departments={departments.map((department) => ({
+          id: department.id,
+          name: department.name,
+        }))}
+        viewerIsAdmin={isAdmin}
+        viewerDepartmentId={viewer.department_id}
+      />
     </div>
   );
 }
@@ -190,7 +253,7 @@ export default function MembersPage({
     <div className="grid gap-4">
       <PageHeader
         title="Members"
-        description="Admins create accounts, manage roles, and deactivate members. There is no self sign-up."
+        description="Admins manage every account, department, and role. Department Heads manage their own members. There is no self sign-up."
       />
       <Suspense fallback={<MembersSkeleton />}>
         <MembersContent searchParams={searchParams} />

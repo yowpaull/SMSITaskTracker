@@ -2,6 +2,7 @@ import "server-only";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { listBrands, listMembers } from "@/lib/data/masters";
+import { listDepartments } from "@/lib/data/departments";
 import { isOverdue, type TaskStatus } from "@/lib/status";
 import type { TaskLogFilters, TaskLogWithRelations } from "@/lib/types";
 
@@ -212,10 +213,19 @@ export type UserTaskStats = GroupTaskStats & {
   isActive: boolean;
 };
 
+export type DepartmentTaskStats = GroupTaskStats & {
+  /** null = members without a department ("Unassigned" bucket). */
+  departmentId: string | null;
+  departmentName: string;
+  memberCount: number;
+};
+
 export type AdminDashboardStats = {
   overall: GroupTaskStats;
   byBrand: BrandTaskStats[];
   byUser: UserTaskStats[];
+  /** Admin-only: rollup per department (computed but only rendered for admins). */
+  byDepartment: DepartmentTaskStats[];
 };
 
 function buildGroupStats(
@@ -255,23 +265,29 @@ function buildGroupStats(
 }
 
 /**
- * Admin dashboard data: overall stats plus per-brand and per-member
- * breakdowns. Aggregated in JS from a single lightweight task_logs fetch
- * (PostgREST has no GROUP BY). Pass `month` ("YYYY-MM") to scope logs to
- * their creation month.
+ * Dashboard data: overall stats plus per-brand, per-member and (for
+ * department-wide calls) per-department breakdowns. Aggregated in JS from a
+ * single lightweight task_logs fetch (PostgREST has no GROUP BY). Pass
+ * `month` ("YYYY-MM") to scope logs to their creation month. Pass
+ * `departmentId` to scope everything to one department (Department Head
+ * dashboard; RLS also restricts the rows a head can read).
  */
 export async function getAdminDashboardStats(
   month?: string,
+  departmentId?: string,
 ): Promise<AdminDashboardStats> {
   const supabase = await createClient();
   let query = supabase
     .from("task_logs")
     .select(
-      "brand_id, status, deadline, assignee:profiles!assigned_to ( id, full_name, email )",
+      "brand_id, status, deadline, assignee:profiles!assigned_to ( id, full_name, email, department_id )",
     );
   const range = monthToRange(month);
   if (range) {
     query = query.gte("created_at", range.fromIso).lt("created_at", range.toIso);
+  }
+  if (departmentId) {
+    query = query.eq("assignee.department_id", departmentId);
   }
   const { data, error } = await query;
 
@@ -283,7 +299,12 @@ export async function getAdminDashboardStats(
     brand_id: string;
     status: string;
     deadline: string | null;
-    assignee: { id: string; full_name: string; email: string } | null;
+    assignee: {
+      id: string;
+      full_name: string;
+      email: string;
+      department_id: string | null;
+    } | null;
   };
   const rows = (data ?? []) as unknown as Row[];
 
@@ -327,5 +348,57 @@ export async function getAdminDashboardStats(
         a.userName.localeCompare(b.userName),
     );
 
-  return { overall, byBrand, byUser };
+  const byDepartment = departmentId
+    ? []
+    : await buildDepartmentStats(rows, members);
+
+  return { overall, byBrand, byUser, byDepartment };
+}
+
+/** Per-department rollup for the admin dashboard (includes "Unassigned"). */
+async function buildDepartmentStats(
+  rows: {
+    status: string;
+    deadline: string | null;
+    assignee: { department_id: string | null } | null;
+  }[],
+  members: { department_id: string | null }[],
+): Promise<DepartmentTaskStats[]> {
+  const departments = await listDepartments(false);
+
+  const memberCounts = new Map<string | null, number>();
+  for (const member of members) {
+    const key = member.department_id;
+    memberCounts.set(key, (memberCounts.get(key) ?? 0) + 1);
+  }
+
+  const rowsByDepartment = new Map<string | null, typeof rows>();
+  for (const row of rows) {
+    const key = row.assignee?.department_id ?? null;
+    const list = rowsByDepartment.get(key);
+    if (list) list.push(row);
+    else rowsByDepartment.set(key, [row]);
+  }
+
+  const stats: DepartmentTaskStats[] = departments.map((department) => ({
+    departmentId: department.id,
+    departmentName: department.name,
+    memberCount: memberCounts.get(department.id) ?? 0,
+    ...buildGroupStats(rowsByDepartment.get(department.id) ?? []),
+  }));
+
+  const unassignedRows = rowsByDepartment.get(null) ?? [];
+  const unassignedMembers = memberCounts.get(null) ?? 0;
+  if (unassignedMembers > 0 || unassignedRows.length > 0) {
+    stats.push({
+      departmentId: null,
+      departmentName: "Unassigned",
+      memberCount: unassignedMembers,
+      ...buildGroupStats(unassignedRows),
+    });
+  }
+
+  return stats.sort(
+    (a, b) => b.total - a.total || a.departmentName.localeCompare(b.departmentName),
+  );
 }

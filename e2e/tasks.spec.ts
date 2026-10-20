@@ -128,7 +128,19 @@ test.describe("Tasks", () => {  test.beforeEach(async ({ page }) => {
   });
 
   test("view, edit (no-op save), and cancel flows", async ({ page }) => {
+    // Hydration guard: these pages SSR-formatted dates (UTC). A server/client
+    // mismatch (e.g. locale timezone drift) surfaces as a console error.
+    const consoleErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") consoleErrors.push(message.text());
+    });
+
     await page.goto("/tasks");
+    // Wait for the streamed table (PPR) before counting rows — a cold count
+    // reads only the header and skips spuriously.
+    await expect(
+      page.getByText(/Showing \d+|No task logs found/).first(),
+    ).toBeVisible();
     test.skip(
       (await page.getByRole("row").count()) < 2,
       "No task logs to open",
@@ -159,6 +171,11 @@ test.describe("Tasks", () => {  test.beforeEach(async ({ page }) => {
     // Cancel returns to the task list.
     await page.getByRole("button", { name: "Cancel" }).click();
     await page.waitForURL(/\/tasks/);
+
+    await expect(page.locator("body")).toBeVisible();
+    expect(
+      consoleErrors.filter((text) => /hydrat|did not match/i.test(text)),
+    ).toEqual([]);
   });
 
   test("cancel on the create page returns to the list", async ({ page }) => {
@@ -169,6 +186,10 @@ test.describe("Tasks", () => {  test.beforeEach(async ({ page }) => {
 
   test("pagination navigates when more than one page exists", async ({ page }) => {
     await page.goto("/tasks");
+    // PPR streams the dynamic list (total, pagination) after load — wait for
+    // the count text before deciding whether a second page exists, otherwise
+    // the visibility check races the stream and skips spuriously.
+    await expect(page.getByText(/Showing \d+/).first()).toBeVisible();
     const pagination = page.getByRole("navigation", { name: "Pagination" });
     test.skip(!(await pagination.isVisible()), "Fewer than two pages of logs");
 

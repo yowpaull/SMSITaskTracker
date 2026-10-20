@@ -17,12 +17,13 @@ import { createTaskLog } from "@/lib/actions/task-logs";
 
 async function NewTaskLogContent() {
   const profile = await requireProfile();
-  const isAdmin = profile.role === "admin";
+  const canAssignOthers =
+    profile.role === "admin" || profile.is_department_head;
 
   const [brands, taskGroups, members] = await Promise.all([
     listBrands(true),
     listTaskPickGroups(),
-    isAdmin ? listMembers() : Promise.resolve([]),
+    canAssignOthers ? listMembers() : Promise.resolve([]),
   ]);
 
   if (brands.length === 0) {
@@ -53,7 +54,7 @@ async function NewTaskLogContent() {
     <TaskLogForm
       action={createTaskLog}
       mode="create"
-      isAdmin={isAdmin}
+      canAssignOthers={canAssignOthers}
       defaultAssigneeId={profile.id}
       brands={brands.map((brand) => ({ label: brand.name, value: brand.id }))}
       taskGroups={taskGroups}

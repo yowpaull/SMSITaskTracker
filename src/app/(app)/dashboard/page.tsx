@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { redirect } from "next/navigation";
 import { MetricCards, MetricCardsSkeleton } from "@/components/metrics/metric-cards";
 import {
   StatusBreakdownChart,
@@ -14,6 +13,10 @@ import {
   UserProgressTable,
   UserProgressTableSkeleton,
 } from "@/components/metrics/user-progress-table";
+import {
+  DepartmentProgressTable,
+  DepartmentProgressTableSkeleton,
+} from "@/components/metrics/department-progress-table";
 import { MonthFilter } from "@/components/metrics/month-filter";
 import { PageHeader } from "@/components/shared/page-header";
 import {
@@ -24,7 +27,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskLogTable } from "@/components/tasks/task-log-table";
-import { requireProfile } from "@/lib/auth";
+import { requireStaffProfile } from "@/lib/auth";
 import {
   getAdminDashboardStats,
   listRecentTaskLogs,
@@ -37,14 +40,23 @@ function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-async function DashboardContent({ searchParams }: { searchParams: Promise<Params> }) {
+async function DashboardContent({
+  searchParams,
+  departmentId,
+  isAdmin,
+}: {
+  searchParams: Promise<Params>;
+  /** Department Head scope; undefined = admin (all departments). */
+  departmentId?: string;
+  isAdmin: boolean;
+}) {
   await connection();
   const params = await searchParams;
   const rawMonth = first(params.month) ?? "";
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(rawMonth) ? rawMonth : undefined;
 
   const [stats, recent] = await Promise.all([
-    getAdminDashboardStats(month),
+    getAdminDashboardStats(month, departmentId),
     listRecentTaskLogs(5, month),
   ]);
 
@@ -58,6 +70,7 @@ async function DashboardContent({ searchParams }: { searchParams: Promise<Params
         <StatusBreakdownChart stats={stats.overall} />
         <BrandProgressChart brands={stats.byBrand} />
       </div>
+      {isAdmin && <DepartmentProgressTable departments={stats.byDepartment} />}
       <UserProgressTable users={stats.byUser} />
       <Card>
         <CardHeader>
@@ -92,6 +105,7 @@ function DashboardSkeleton() {
         <StatusBreakdownChartSkeleton />
         <BrandProgressChartSkeleton />
       </div>
+      <DepartmentProgressTableSkeleton />
       <UserProgressTableSkeleton />
       <Card>
         <CardHeader>
@@ -114,17 +128,25 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<Params>;
 }) {
-  const profile = await requireProfile();
-  if (profile.role !== "admin") redirect("/tasks");
+  const profile = await requireStaffProfile();
+  const isAdmin = profile.role === "admin";
 
   return (
     <div className="grid gap-4">
       <PageHeader
         title="Dashboard"
-        description="Task progress across brands and members."
+        description={
+          isAdmin
+            ? "Task progress across brands, members, and departments."
+            : "Task progress for your department's members."
+        }
       />
       <Suspense fallback={<DashboardSkeleton />}>
-        <DashboardContent searchParams={searchParams} />
+        <DashboardContent
+          searchParams={searchParams}
+          departmentId={isAdmin ? undefined : profile.department_id ?? undefined}
+          isAdmin={isAdmin}
+        />
       </Suspense>
     </div>
   );

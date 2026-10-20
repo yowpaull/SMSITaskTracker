@@ -9,14 +9,18 @@ test.describe("Member access (non-admin)", () => {
     await page.waitForURL(/\/tasks/);
   });
 
-  test("sidebar hides admin-only links", async ({ page }) => {
+  test("sidebar hides staff-only links", async ({ page }) => {
     await expect(
       page.getByRole("link", { name: "Tasks", exact: true }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Create Task", exact: true }),
-    ).toBeVisible();
-    for (const name of ["Dashboard", "Brands", "Members"]) {
+    for (const name of [
+      "Dashboard",
+      "My Tasks",
+      "Create Task",
+      "Brands",
+      "Departments",
+      "Members",
+    ]) {
       await expect(
         page.getByRole("link", { name, exact: true }),
       ).toHaveCount(0);
@@ -24,11 +28,24 @@ test.describe("Member access (non-admin)", () => {
   });
 
   test("admin pages redirect members to /tasks", async ({ page }) => {
-    for (const path of ["/dashboard", "/brands", "/members"]) {
+    for (const path of [
+      "/dashboard",
+      "/brands",
+      "/departments",
+      "/members",
+      "/my-tasks",
+      "/create-task",
+    ]) {
       await page.goto(path);
       await page.waitForURL(/\/tasks/);
       expect(page.url()).not.toContain(path);
     }
+  });
+
+  test("members cannot open member manage pages", async ({ page }) => {
+    await page.goto("/members/00000000-0000-0000-0000-000000000000");
+    await page.waitForURL(/\/tasks/);
+    expect(page.url()).not.toContain("/members/");
   });
 
   test("tasks page shows personal KPI cards for members", async ({ page }) => {
@@ -39,6 +56,10 @@ test.describe("Member access (non-admin)", () => {
     ).toBeVisible();
     // The assignee filter is admin-only.
     await expect(page.getByRole("button", { name: "All assignees" })).toHaveCount(0);
+    // Members still create task logs for themselves (assignee locked to self).
+    await expect(
+      page.getByRole("button", { name: "New task log" }),
+    ).toBeVisible();
   });
 
   test("members can open their profile", async ({ page }) => {

@@ -18,9 +18,10 @@ import { Label } from "@/components/ui/label";
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 function currentMonth() {
+  // UTC — matches the API's UTC month window for created_at.
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+  return `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}`;
 }
 
 export function ExportTaskLogsButton() {

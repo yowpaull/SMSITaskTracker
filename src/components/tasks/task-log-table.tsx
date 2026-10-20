@@ -18,9 +18,12 @@ import { OverdueBadge, StatusBadge } from "./status-badge";
 export function TaskLogTable({
   logs,
   showAssignee = true,
+  canDelete = true,
 }: {
   logs: TaskLogWithRelations[];
   showAssignee?: boolean;
+  /** Plain members never delete logs — pages pass false for them. */
+  canDelete?: boolean;
 }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
@@ -102,10 +105,12 @@ export function TaskLogTable({
                   >
                     Edit
                   </Button>
-                  <DeleteTaskLogButton
-                    logId={log.id}
-                    taskName={log.task?.name ?? "Unknown task"}
-                  />
+                  {canDelete && (
+                    <DeleteTaskLogButton
+                      logId={log.id}
+                      taskName={log.task?.name ?? "Unknown task"}
+                    />
+                  )}
                 </div>
               </TableCell>
             </TableRow>

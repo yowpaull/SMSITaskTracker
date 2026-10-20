@@ -63,7 +63,8 @@ function findTaskLocation(
 export function TaskLogForm({
   action,
   mode,
-  isAdmin,
+  canAssignOthers,
+  statusOnly = false,
   brands,
   taskGroups,
   members,
@@ -76,7 +77,9 @@ export function TaskLogForm({
     formData: FormData,
   ) => Promise<TaskLogActionState>;
   mode: "create" | "update";
-  isAdmin: boolean;
+  canAssignOthers: boolean;
+  /** Plain members: render only the status field (all other fields locked). */
+  statusOnly?: boolean;
   brands: OptionItem[];
   taskGroups: TaskPickGroup[];
   members: OptionItem[];
@@ -204,8 +207,10 @@ export function TaskLogForm({
       )}
 
       <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor="main-category-select">Main category</FieldLabel>
+        {!statusOnly && (
+          <>
+            <Field>
+              <FieldLabel htmlFor="main-category-select">Main category</FieldLabel>
           <Select
             items={mainItems}
             value={mainCategoryId}
@@ -321,6 +326,8 @@ export function TaskLogForm({
             </p>
           )}
         </Field>
+          </>
+        )}
 
         {mode === "update" && (
           <Field>
@@ -352,7 +359,7 @@ export function TaskLogForm({
           </Field>
         )}
 
-        {isAdmin && (
+        {canAssignOthers && (
           <Field>
             <FieldLabel htmlFor="assignee-select">Assign to</FieldLabel>
             <Select
@@ -385,6 +392,8 @@ export function TaskLogForm({
           </Field>
         )}
 
+        {!statusOnly && (
+          <>
         <Field>
           <FieldLabel htmlFor="deadline">
             {mode === "create" ? "Deadline" : "Deadline"}
@@ -426,6 +435,8 @@ export function TaskLogForm({
             />
           </div>
         </div>
+          </>
+        )}
       </FieldGroup>
 
       <div className="flex gap-2">

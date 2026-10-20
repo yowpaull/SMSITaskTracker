@@ -20,7 +20,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <ThemeToggle />
         </header>
         <main className="flex-1">
-          <div className="mx-auto w-full max-w-6xl px-4 py-6">{children}</div>
+          <div className="w-full px-4 py-6">{children}</div>
         </main>
       </SidebarInset>
     </SidebarProvider>

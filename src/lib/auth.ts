@@ -58,3 +58,21 @@ export async function requireAdmin(): Promise<Profile> {
   if (profile.role !== "admin") redirect("/tasks");
   return profile;
 }
+
+/** Admin or Department Head; plain members are redirected to /tasks. */
+export async function requireStaffProfile(): Promise<Profile> {
+  const profile = await requireProfile();
+  if (profile.role !== "admin" && !profile.is_department_head) {
+    redirect("/tasks");
+  }
+  return profile;
+}
+
+/** The signed-in Department Head's profile; non-heads go to /tasks. */
+export async function requireDepartmentHead(): Promise<Profile> {
+  const profile = await requireProfile();
+  if (profile.role !== "admin" && (!profile.is_department_head || !profile.department_id)) {
+    redirect("/tasks");
+  }
+  return profile;
+}

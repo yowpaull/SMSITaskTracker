@@ -23,17 +23,55 @@ const ROLE_ITEMS = [
   { label: "Admin", value: "admin" },
 ];
 
-export function CreateMemberForm() {
+const NO_DEPARTMENT = "none";
+
+type DepartmentOption = { id: string; name: string };
+
+export function CreateMemberForm({
+  departments,
+  viewerIsAdmin,
+  viewerDepartmentId,
+}: {
+  departments: DepartmentOption[];
+  viewerIsAdmin: boolean;
+  viewerDepartmentId: string | null;
+}) {
   const [state, formAction, pending] = useActionState(createMember, null);
   const [role, setRole] = useState<string | null>("user");
+  const [department, setDepartment] = useState<string | null>(
+    viewerIsAdmin ? NO_DEPARTMENT : (viewerDepartmentId ?? NO_DEPARTMENT),
+  );
   useResultToast(state);
 
-  const items = [{ label: "Select a role…", value: null }, ...ROLE_ITEMS];
+  const [lastResult, setLastResult] = useState(state);
+  if (state !== lastResult) {
+    setLastResult(state);
+    if (state?.success) {
+      setRole("user");
+      setDepartment(
+        viewerIsAdmin ? NO_DEPARTMENT : (viewerDepartmentId ?? NO_DEPARTMENT),
+      );
+    }
+  }
+
+  const roleItems = [
+    { label: "Select a role…", value: null },
+    ...ROLE_ITEMS,
+  ];
+  const departmentItems = [
+    { label: "No department", value: NO_DEPARTMENT },
+    ...departments.map((d) => ({ label: d.name, value: d.id })),
+  ];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Add member</CardTitle>
+        {!viewerIsAdmin && (
+          <p className="text-muted-foreground text-sm">
+            New members are added to your department.
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <form action={formAction} className="grid gap-4">
@@ -77,31 +115,71 @@ export function CreateMemberForm() {
                 sign in.
               </p>
             </Field>
-            <Field>
-              <FieldLabel htmlFor="member-role">Role</FieldLabel>
-              <Select
-                items={items}
-                value={role}
-                onValueChange={setRole}
-              >
-                <SelectTrigger id="member-role" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false}>
-                  <SelectGroup>
-                    {items.map((item) => (
-                      <SelectItem
-                        key={item.value ?? "placeholder"}
-                        value={item.value}
-                      >
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <input type="hidden" name="role" value={role ?? ""} />
-            </Field>
+            {viewerIsAdmin ? (
+              <Field>
+                <FieldLabel htmlFor="member-role">Role</FieldLabel>
+                <Select
+                  items={roleItems}
+                  value={role}
+                  onValueChange={setRole}
+                >
+                  <SelectTrigger id="member-role" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    <SelectGroup>
+                      {roleItems.map((item) => (
+                        <SelectItem
+                          key={item.value ?? "placeholder"}
+                          value={item.value}
+                        >
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="role" value={role ?? ""} />
+              </Field>
+            ) : (
+              <input type="hidden" name="role" value="user" />
+            )}
+            {viewerIsAdmin ? (
+              <Field>
+                <FieldLabel htmlFor="member-department">Department</FieldLabel>
+                <Select
+                  items={departmentItems}
+                  value={department}
+                  onValueChange={setDepartment}
+                >
+                  <SelectTrigger id="member-department" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    <SelectGroup>
+                      {departmentItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <input
+                  type="hidden"
+                  name="department_id"
+                  value={
+                    department && department !== NO_DEPARTMENT ? department : ""
+                  }
+                />
+              </Field>
+            ) : (
+              <input
+                type="hidden"
+                name="department_id"
+                value={viewerDepartmentId ?? ""}
+              />
+            )}
           </FieldGroup>
           <Button type="submit" disabled={pending} className="w-fit">
             {pending && <Spinner data-icon="inline-start" />}

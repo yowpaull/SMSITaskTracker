@@ -12,13 +12,17 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireProfile } from "@/lib/auth";
-import { formatDateTime } from "@/lib/format";  
+import { getDepartment } from "@/lib/data/departments";
+import { formatDateTime } from "@/lib/format";
 
 async function ProfileContent() {
   const profile = await requireProfile();
+  const department = profile.department_id
+    ? await getDepartment(profile.department_id)
+    : null;
 
   return (
-    <div className="grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <Card className="self-start">
         <CardHeader>
           <CardTitle className="text-base">Your profile</CardTitle>
@@ -34,16 +38,30 @@ async function ProfileContent() {
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Role</p>
-            <Badge
-              variant="secondary"
-              className={
-                profile.role === "admin"
-                  ? "border-transparent bg-primary/10 text-primary"
-                  : "border-transparent bg-secondary text-secondary-foreground"
-              }
-            >
-              {profile.role === "admin" ? "Admin" : "Member"}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-1">
+              <Badge
+                variant="secondary"
+                className={
+                  profile.role === "admin"
+                    ? "border-transparent bg-primary/10 text-primary"
+                    : "border-transparent bg-secondary text-secondary-foreground"
+                }
+              >
+                {profile.role === "admin" ? "Admin" : "Member"}
+              </Badge>
+              {profile.is_department_head && (
+                <Badge
+                  variant="secondary"
+                  className="border-transparent bg-warning/10 text-warning"
+                >
+                  Department Head
+                </Badge>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Department</p>
+            <p>{department?.name ?? "Unassigned"}</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Member since</p>
@@ -65,7 +83,7 @@ async function ProfileContent() {
 
 function ProfileSkeleton() {
   return (
-    <div className="grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" aria-busy="true">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" aria-busy="true">
       <Card className="self-start">
         <CardHeader>
           <Skeleton className="h-4 w-28" />

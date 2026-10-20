@@ -33,8 +33,9 @@ export function BrandProgressChart({ brands }: { brands: BrandTaskStats[] }) {
           <p className="text-muted-foreground text-sm">No brands yet.</p>
         ) : (
           <>
-            <ul className="flex h-44 items-stretch gap-2 sm:gap-3">
-              {brands.map((brand) => {
+            <div className="overflow-x-auto">
+              <ul className="flex h-44 min-w-max items-stretch gap-2 sm:gap-3">
+                {brands.map((brand) => {
                 const description = `${brand.brandName}: ${brand.total} ${
                   brand.total === 1 ? "task" : "tasks"
                 }, ${brand.progressPercent}% progress; ${brand.pending} pending, ${brand.inProgress} in progress, ${brand.completed} completed, ${brand.cancelled} cancelled`;
@@ -48,7 +49,7 @@ export function BrandProgressChart({ brands }: { brands: BrandTaskStats[] }) {
                 return (
                   <li
                     key={brand.brandId}
-                    className="flex min-w-0 flex-1 flex-col items-center gap-1"
+                    className="flex min-w-14 flex-1 flex-col items-center gap-1"
                     title={description}
                   >
                     <span className="font-medium text-xs tabular-nums">
@@ -91,7 +92,8 @@ export function BrandProgressChart({ brands }: { brands: BrandTaskStats[] }) {
                   </li>
                 );
               })}
-            </ul>
+              </ul>
+            </div>
             <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-3">
               {LEGEND.map((item) => (
                 <li
@@ -118,23 +120,25 @@ export function BrandProgressChartSkeleton() {
         <Skeleton className="h-3 w-28" />
       </CardHeader>
       <CardContent className="grid gap-4">
-        <ul className="flex h-44 items-stretch gap-2 sm:gap-3">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <li
-              key={index}
-              className="flex min-w-0 flex-1 flex-col items-center gap-1"
-            >
-              <Skeleton className="h-3 w-5" />
-              <div className="flex w-full max-w-12 flex-1 items-end">
-                <Skeleton
-                  className="w-full rounded-md"
-                  style={{ height: `${[55, 90, 40, 70][index]}%` }}
-                />
-              </div>
-              <Skeleton className="h-3 w-full" />
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-x-auto">
+          <ul className="flex h-44 min-w-max items-stretch gap-2 sm:gap-3">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <li
+                key={index}
+                className="flex min-w-14 flex-1 flex-col items-center gap-1"
+              >
+                <Skeleton className="h-3 w-5" />
+                <div className="flex w-full max-w-12 flex-1 items-end">
+                  <Skeleton
+                    className="w-full rounded-md"
+                    style={{ height: `${[55, 90, 40, 70][index]}%` }}
+                  />
+                </div>
+                <Skeleton className="h-3 w-full" />
+              </li>
+            ))}
+          </ul>
+        </div>
         <ul className="flex flex-wrap gap-4 border-t pt-3">
           {Array.from({ length: 4 }).map((_, index) => (
             <li key={index}>

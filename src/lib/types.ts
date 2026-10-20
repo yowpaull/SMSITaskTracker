@@ -6,6 +6,16 @@ export type Profile = {
   email: string;
   role: "admin" | "user";
   is_active: boolean;
+  department_id: string | null;
+  is_department_head: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Department = {
+  id: string;
+  name: string;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 };

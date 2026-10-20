@@ -94,6 +94,7 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
 
   const profile = await requireProfile();
   const isAdmin = profile.role === "admin";
+  const canAssignOthers = isAdmin || profile.is_department_head;
 
   const [result, brands, subcategories, members, myStats]: [
     Awaited<ReturnType<typeof listTaskLogs>>,
@@ -106,11 +107,13 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
     listBrands(true),
     listSubcategoriesWithLabels(true),
     listMembers(),
-    // Non-admins see KPIs for their own logs; admins use the dashboard.
-    isAdmin ? Promise.resolve(null) : getMyTaskStats(),
+    // Personal KPI cards for plain members only — here the list is already
+    // their own. Admins and heads use /my-tasks for the personal view.
+    !isAdmin && !profile.is_department_head ? getMyTaskStats() : Promise.resolve(null),
   ]);
 
-  // Non-admins only see their own logs; the assignee filter is hidden for them.
+  // Department Heads (and admins) see the assignee filter; RLS restricts
+  // which logs and members a head can reach.
   const memberOptions: OptionItem[] = members.map((member) => ({
     label: member.full_name || member.email,
     value: member.id,
@@ -139,7 +142,7 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
         brandOptions={brandOptions}
         categoryOptions={categoryOptions}
         memberOptions={memberOptions}
-        showAssigneeFilter={isAdmin}
+        showAssigneeFilter={canAssignOthers}
       />
 
       {result.logs.length > 0 && (
@@ -168,7 +171,11 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
           </Empty>
         </div>
       ) : (
-        <TaskLogTable logs={result.logs} showAssignee={isAdmin} />
+        <TaskLogTable
+          logs={result.logs}
+          showAssignee={canAssignOthers}
+          canDelete={canAssignOthers}
+        />
       )}
 
       {totalPages > 1 && (

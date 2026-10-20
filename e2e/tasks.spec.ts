@@ -128,6 +128,13 @@ test.describe("Tasks", () => {  test.beforeEach(async ({ page }) => {
   });
 
   test("view, edit (no-op save), and cancel flows", async ({ page }) => {
+    // Hydration guard: these pages SSR-formatted dates (UTC). A server/client
+    // mismatch (e.g. locale timezone drift) surfaces as a console error.
+    const consoleErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") consoleErrors.push(message.text());
+    });
+
     await page.goto("/tasks");
     test.skip(
       (await page.getByRole("row").count()) < 2,
@@ -159,6 +166,11 @@ test.describe("Tasks", () => {  test.beforeEach(async ({ page }) => {
     // Cancel returns to the task list.
     await page.getByRole("button", { name: "Cancel" }).click();
     await page.waitForURL(/\/tasks/);
+
+    await expect(page.locator("body")).toBeVisible();
+    expect(
+      consoleErrors.filter((text) => /hydrat|did not match/i.test(text)),
+    ).toEqual([]);
   });
 
   test("cancel on the create page returns to the list", async ({ page }) => {

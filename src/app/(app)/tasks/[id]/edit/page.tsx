@@ -36,18 +36,24 @@ async function TaskLogEditContent({
   const profile = await requireProfile();
   const canAssignOthers =
     profile.role === "admin" || profile.is_department_head;
+  // Plain members may only change the status — every other field is locked.
+  const statusOnly = !canAssignOthers;
 
   const [brands, taskGroups, members] = await Promise.all([
-    listBrands(),
-    listTaskPickGroups(),
-    canAssignOthers ? listMembers() : Promise.resolve([]),
+    statusOnly ? Promise.resolve([]) : listBrands(),
+    statusOnly ? Promise.resolve([]) : listTaskPickGroups(),
+    statusOnly ? Promise.resolve([]) : listMembers(),
   ]);
 
   return (
     <div className="grid gap-4">
       <PageHeader
         title="Edit task log"
-        description="Update status, priority, deadline, or assignment."
+        description={
+          statusOnly
+            ? "Update the status of this task log. All other fields are locked."
+            : "Update status, priority, deadline, or assignment."
+        }
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="grid gap-4">
@@ -55,6 +61,7 @@ async function TaskLogEditContent({
             action={updateTaskLog}
             mode="update"
             canAssignOthers={canAssignOthers}
+            statusOnly={statusOnly}
             initial={log}
             cancelHref="/tasks"
             brands={brands.map((brand) => ({

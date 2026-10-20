@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireProfile } from "@/lib/auth";
+import { requireProfile, requireStaffProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   categorySchema,
@@ -27,7 +27,7 @@ export async function createCategory(
   _prevState: MasterActionState,
   formData: FormData,
 ): Promise<MasterActionState> {
-  await requireProfile();
+  await requireStaffProfile();
 
   const parsed = categorySchema.safeParse({
     name: formData.get("name"),
@@ -137,7 +137,7 @@ export async function createSubcategory(
   _prevState: MasterActionState,
   formData: FormData,
 ): Promise<MasterActionState> {
-  await requireProfile();
+  await requireStaffProfile();
 
   const parsed = subcategorySchema.safeParse({
     name: formData.get("name"),

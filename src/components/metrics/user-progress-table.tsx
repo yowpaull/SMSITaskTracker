@@ -30,7 +30,7 @@ export function UserProgressTable({ users }: { users: UserTaskStats[] }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Member</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Total Tasks</TableHead>
                   <TableHead className="text-right">Pending</TableHead>
                   <TableHead className="text-right">In progress</TableHead>
                   <TableHead className="text-right">Completed</TableHead>

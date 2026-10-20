@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { MISSING_ADMIN, hasAdminCreds, login, uniqueName } from "./helpers";
+import {
+  MISSING_ADMIN,
+  daysFromNow,
+  hasAdminCreds,
+  login,
+  trySelectOptionAt,
+  uniqueName,
+} from "./helpers";
 
 test.describe("Departments", () => {
   test.skip(!hasAdminCreds, MISSING_ADMIN);
@@ -122,6 +129,10 @@ test.describe("Departments", () => {
     await expect(
       page.getByRole("link", { name: "Departments", exact: true }),
     ).toHaveCount(0);
+    // Task definitions stay open for staff (admin + heads), not members.
+    await expect(
+      page.getByRole("link", { name: "Create Task", exact: true }),
+    ).toBeVisible();
 
     // Head My Tasks: personal KPI cards and no assignee filter.
     await page.getByRole("link", { name: "My Tasks", exact: true }).click();
@@ -183,10 +194,71 @@ test.describe("Departments", () => {
     await page.goto("/brands");
     await page.waitForURL(/\/tasks/);
 
+    // --- Head deletes logs of their own members ---
+    const createLogForMate = async () => {
+      await page.goto("/tasks/new");
+      await expect(
+        page.getByRole("heading", { name: "New task log" }),
+      ).toBeVisible();
+      for (const id of [
+        "#main-category-select",
+        "#sub-category-select",
+        "#task-select",
+        "#brand-select",
+      ]) {
+        await trySelectOptionAt(page, id, 1);
+      }
+      await page.locator("#assignee-select").click();
+      const mateOption = page.getByRole("option", {
+        name: mateName,
+        exact: true,
+      });
+      await expect(mateOption).toBeVisible();
+      await mateOption.click();
+      await page.locator("#deadline").fill(daysFromNow(5));
+      await page.getByRole("button", { name: "Create task log" }).click();
+      await page.waitForURL(/\/tasks\?created=1/);
+      const row = page.getByRole("row").nth(1);
+      await expect(row).toBeVisible();
+      return (await row.locator("td").first().innerText()).trim();
+    };
+
+    // Create a member-assigned log and delete it as the head.
+    await createLogForMate();
+    const headLogRow = page.getByRole("row").nth(1);
+    await headLogRow
+      .getByRole("button", { name: "Delete", exact: true })
+      .click();
+    const headDialog = page.getByRole("alertdialog");
+    await expect(headDialog).toBeVisible();
+    await headDialog
+      .getByRole("button", { name: "Delete", exact: true })
+      .click();
+    await expect(page.getByText("Task log deleted.")).toBeVisible();
+
+    // Leave one more member-assigned log for the admin to delete below —
+    // proof that admins can delete anyone's logs.
+    await createLogForMate();
+
     // --- Cleanup: admin deactivates everything ---
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login/);
     await login(page, "admin");
+
+    // Admin deletes the head-created member log (admins delete any log) —
+    // the stray sorts first as the newest log.
+    await page.goto("/tasks");
+    const strayRow = page.getByRole("row").nth(1);
+    await expect(strayRow).toBeVisible();
+    await strayRow
+      .getByRole("button", { name: "Delete", exact: true })
+      .click();
+    const strayDialog = page.getByRole("alertdialog");
+    await expect(strayDialog).toBeVisible();
+    await strayDialog
+      .getByRole("button", { name: "Delete", exact: true })
+      .click();
+    await expect(page.getByText("Task log deleted.")).toBeVisible();
 
     for (const email of [headEmail, mateEmail, childEmail, memberEmail]) {
       await page.goto(`/members?q=${encodeURIComponent(email)}`);

@@ -9,16 +9,14 @@ test.describe("Member access (non-admin)", () => {
     await page.waitForURL(/\/tasks/);
   });
 
-  test("sidebar hides admin-only links", async ({ page }) => {
+  test("sidebar hides staff-only links", async ({ page }) => {
     await expect(
       page.getByRole("link", { name: "Tasks", exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Create Task", exact: true }),
     ).toBeVisible();
     for (const name of [
       "Dashboard",
       "My Tasks",
+      "Create Task",
       "Brands",
       "Departments",
       "Members",
@@ -36,6 +34,7 @@ test.describe("Member access (non-admin)", () => {
       "/departments",
       "/members",
       "/my-tasks",
+      "/create-task",
     ]) {
       await page.goto(path);
       await page.waitForURL(/\/tasks/);
@@ -57,6 +56,10 @@ test.describe("Member access (non-admin)", () => {
     ).toBeVisible();
     // The assignee filter is admin-only.
     await expect(page.getByRole("button", { name: "All assignees" })).toHaveCount(0);
+    // Members still create task logs for themselves (assignee locked to self).
+    await expect(
+      page.getByRole("button", { name: "New task log" }),
+    ).toBeVisible();
   });
 
   test("members can open their profile", async ({ page }) => {

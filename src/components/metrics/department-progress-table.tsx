@@ -37,7 +37,7 @@ export function DepartmentProgressTable({
                 <TableRow>
                   <TableHead>Department</TableHead>
                   <TableHead className="text-right">Members</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Total Tasks</TableHead>
                   <TableHead className="text-right">Pending</TableHead>
                   <TableHead className="text-right">In progress</TableHead>
                   <TableHead className="text-right">Completed</TableHead>

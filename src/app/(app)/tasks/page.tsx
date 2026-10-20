@@ -171,7 +171,11 @@ async function TaskListContent({ searchParams }: { searchParams: Promise<Params>
           </Empty>
         </div>
       ) : (
-        <TaskLogTable logs={result.logs} showAssignee={canAssignOthers} />
+        <TaskLogTable
+          logs={result.logs}
+          showAssignee={canAssignOthers}
+          canDelete={canAssignOthers}
+        />
       )}
 
       {totalPages > 1 && (

@@ -33,6 +33,9 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   use: {
     baseURL: "http://localhost:3000",
+    // Bound every bare click/fill: a popover that never opens would
+    // otherwise hang a test until the full test timeout.
+    actionTimeout: 30_000,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },

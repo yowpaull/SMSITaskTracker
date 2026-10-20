@@ -32,7 +32,12 @@ const NAV_ITEMS = [
     icon: UserRoundIcon,
     staffOnly: true,
   },
-  { href: "/create-task", label: "Create Task", icon: ListPlusIcon },
+  {
+    href: "/create-task",
+    label: "Create Task",
+    icon: ListPlusIcon,
+    staffOnly: true,
+  },
   {
     href: "/brands",
     label: "Brands",

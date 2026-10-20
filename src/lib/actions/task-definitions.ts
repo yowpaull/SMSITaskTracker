@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireProfile } from "@/lib/auth";
+import { requireProfile, requireStaffProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   taskDefinitionSchema,
@@ -25,7 +25,7 @@ export async function createTaskDefinition(
   _prevState: MasterActionState,
   formData: FormData,
 ): Promise<MasterActionState> {
-  await requireProfile();
+  await requireStaffProfile();
 
   const parsed = taskDefinitionSchema.safeParse({
     name: formDataValue(formData, "name"),

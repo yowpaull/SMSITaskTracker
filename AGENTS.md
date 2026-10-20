@@ -18,8 +18,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Dev server: `npm run dev` (Turbopack; also regenerates the agent-rules block above).
 - Lint: `npm run lint` (ESLint 9 flat config in `eslint.config.mjs`).
-- Typecheck: `npx tsc --noEmit` — there is **no** `typecheck` script.
-- Build: `npm run build`. Before finishing a change: `npm run lint` → `npx tsc --noEmit` → `npm run build`.
+- Typecheck: `npm run typecheck` (`next typegen && tsc --noEmit` — the typegen step is required: route helpers like `LayoutProps`/`PageProps` are generated into `.next/types` and are absent on fresh clones/CI until `next dev`/`next build`/`next typegen` runs).
+- Build: `npm run build`. Before finishing a change: `npm run lint` → `npm run typecheck` → `npm run build`.
+- E2E: `npm run test:e2e` (Playwright; needs `E2E_ADMIN_*`/`E2E_MEMBER_*` in `.env.local`, else credentialed tests skip). CI runs this in `.github/workflows/ci.yml` against `next start`.
 - No test script or test runner is installed. If adding tests, install a runner and say so; don't claim tests passed otherwise.
 
 ## Toolchain quirks

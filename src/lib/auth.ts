@@ -20,6 +20,12 @@ export const getAuthUser = cache(async (): Promise<AuthUser | null> => {
 export async function requireUser(): Promise<AuthUser> {
   const user = await getAuthUser();
   if (!user) redirect("/login");
+  // Deactivated accounts are kept out of every authed page. The ?deactivated
+  // flag stops the proxy from bouncing them back into the app (see proxy.ts).
+  const profile = await getProfile();
+  if (profile && !profile.is_active) {
+    redirect("/login?deactivated=1");
+  }
   return user;
 }
 
@@ -49,6 +55,24 @@ export async function requireProfile(): Promise<Profile> {
 
 export async function requireAdmin(): Promise<Profile> {
   const profile = await requireProfile();
-  if (profile.role !== "admin") redirect("/dashboard");
+  if (profile.role !== "admin") redirect("/tasks");
+  return profile;
+}
+
+/** Admin or Department Head; plain members are redirected to /tasks. */
+export async function requireStaffProfile(): Promise<Profile> {
+  const profile = await requireProfile();
+  if (profile.role !== "admin" && !profile.is_department_head) {
+    redirect("/tasks");
+  }
+  return profile;
+}
+
+/** The signed-in Department Head's profile; non-heads go to /tasks. */
+export async function requireDepartmentHead(): Promise<Profile> {
+  const profile = await requireProfile();
+  if (profile.role !== "admin" && (!profile.is_department_head || !profile.department_id)) {
+    redirect("/tasks");
+  }
   return profile;
 }

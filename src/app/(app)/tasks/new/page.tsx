@@ -10,21 +10,20 @@ import { TaskLogForm } from "@/components/tasks/task-log-form";
 import { requireProfile } from "@/lib/auth";
 import {
   listBrands,
-  listCategories,
   listMembers,
-  listTaskDefinitions,
+  listTaskPickGroups,
 } from "@/lib/data/masters";
 import { createTaskLog } from "@/lib/actions/task-logs";
 
 async function NewTaskLogContent() {
   const profile = await requireProfile();
-  const isAdmin = profile.role === "admin";
+  const canAssignOthers =
+    profile.role === "admin" || profile.is_department_head;
 
-  const [brands, categories, definitions, members] = await Promise.all([
+  const [brands, taskGroups, members] = await Promise.all([
     listBrands(true),
-    listCategories(true),
-    listTaskDefinitions(true),
-    isAdmin ? listMembers() : Promise.resolve([]),
+    listTaskPickGroups(),
+    canAssignOthers ? listMembers() : Promise.resolve([]),
   ]);
 
   if (brands.length === 0) {
@@ -39,25 +38,13 @@ async function NewTaskLogContent() {
     );
   }
 
-  if (categories.length === 0) {
-    return (
-      <Empty>
-        <EmptyTitle>No active categories</EmptyTitle>
-        <EmptyDescription>
-          Add a category on the Categories page, then create a task
-          definition.
-        </EmptyDescription>
-      </Empty>
-    );
-  }
-
-  if (definitions.length === 0) {
+  if (taskGroups.length === 0) {
     return (
       <Empty>
         <EmptyTitle>No active task definitions</EmptyTitle>
         <EmptyDescription>
-          Add a task definition on the Definitions page before creating a
-          task log.
+          Add a category and a task on the Create Task page before creating
+          a task log.
         </EmptyDescription>
       </Empty>
     );
@@ -67,15 +54,10 @@ async function NewTaskLogContent() {
     <TaskLogForm
       action={createTaskLog}
       mode="create"
-      isAdmin={isAdmin}
+      canAssignOthers={canAssignOthers}
       defaultAssigneeId={profile.id}
       brands={brands.map((brand) => ({ label: brand.name, value: brand.id }))}
-      definitions={definitions.map((definition) => ({
-        label: definition.category
-          ? `${definition.name} · ${definition.category.name}`
-          : definition.name,
-        value: definition.id,
-      }))}
+      taskGroups={taskGroups}
       members={members.map((member) => ({
         label: member.full_name || member.email,
         value: member.id,

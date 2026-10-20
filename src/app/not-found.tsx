@@ -9,8 +9,8 @@ export default function NotFound() {
         The page you are looking for does not exist or you do not have
         access to it.
       </p>
-      <Button render={<Link href="/dashboard" />} nativeButton={false}>
-        Back to dashboard
+      <Button render={<Link href="/tasks" />} nativeButton={false}>
+        Back to tasks
       </Button>
     </main>
   );

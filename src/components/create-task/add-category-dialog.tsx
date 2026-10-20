@@ -23,26 +23,35 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { createCategory } from "@/lib/actions/categories";
+import { createCategory, createSubcategory } from "@/lib/actions/categories";
 
-export function AddCategoryDialog() {
+export function AddCategoryDialog({
+  categoryId,
+  categoryName,
+}: {
+  /** When set, creates a subcategory under this main category instead. */
+  categoryId?: string;
+  categoryName?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const isSubcategory = Boolean(categoryId);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
     startTransition(async () => {
-      const result = await createCategory(null, formData);
+      const action = isSubcategory ? createSubcategory : createCategory;
+      const result = await action(null, formData);
       if (result?.error) {
         setError(result.error);
         toast.error(result.error);
         return;
       }
       setError(null);
-      toast.success(result?.success ?? "Category created.");
+      toast.success(result?.success ?? "Saved.");
       form.reset();
       setOpen(false);
     });
@@ -60,15 +69,19 @@ export function AddCategoryDialog() {
         render={
           <Button>
             <PlusIcon data-icon="inline-start" />
-            Add category
+            {isSubcategory ? "Add subcategory" : "Add category"}
           </Button>
         }
       />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add category</DialogTitle>
+          <DialogTitle>
+            {isSubcategory ? "Add subcategory" : "Add category"}
+          </DialogTitle>
           <DialogDescription>
-            Categories group related tasks, e.g. Marketing or Reporting.
+            {isSubcategory
+              ? `New subcategory under ${categoryName}. Tasks are added inside subcategories.`
+              : "Categories group related tasks, e.g. Marketing or Reporting."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="grid gap-4">
@@ -77,6 +90,9 @@ export function AddCategoryDialog() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+          {categoryId && (
+            <input type="hidden" name="category_id" value={categoryId} />
+          )}
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="category-name">Name</FieldLabel>
@@ -84,7 +100,9 @@ export function AddCategoryDialog() {
                 id="category-name"
                 name="name"
                 required
-                placeholder="e.g. Marketing"
+                placeholder={
+                  isSubcategory ? "e.g. Social media" : "e.g. Marketing"
+                }
               />
             </Field>
             <Field>
@@ -98,13 +116,13 @@ export function AddCategoryDialog() {
                 placeholder="Optional"
               />
               <FieldDescription>
-                Group related tasks under one category.
+                Group related tasks under one {isSubcategory ? "subcategory" : "category"}.
               </FieldDescription>
             </Field>
           </FieldGroup>
           <Button type="submit" disabled={pending} className="w-fit">
             {pending && <Spinner data-icon="inline-start" />}
-            Add category
+            {isSubcategory ? "Add subcategory" : "Add category"}
           </Button>
         </form>
       </DialogContent>

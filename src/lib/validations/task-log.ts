@@ -7,7 +7,9 @@ export const createTaskLogSchema = z.object({
   task_id: z.uuid("Pick a task definition."),
   brand_id: z.uuid("Pick a brand."),
   assigned_to: z.uuid().optional(),
-  deadline: z.string().optional(),
+  deadline: z
+    .string("Pick a deadline.")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a deadline."),
   urgent: z.boolean(),
   important: z.boolean(),
 });
@@ -23,8 +25,22 @@ export const updateTaskLogSchema = z.object({
   important: z.boolean(),
 });
 
+// Plain members may only change the status of a log — every other field
+// (task, brand, assignee, deadline, priority) is locked after creation.
+export const memberUpdateTaskLogSchema = z.object({
+  id: z.uuid(),
+  status: taskLogStatusSchema,
+});
+
+export const deleteTaskLogSchema = z.object({
+  id: z.uuid(),
+});
+
 export type CreateTaskLogInput = z.infer<typeof createTaskLogSchema>;
 export type UpdateTaskLogInput = z.infer<typeof updateTaskLogSchema>;
+export type MemberUpdateTaskLogInput = z.infer<
+  typeof memberUpdateTaskLogSchema
+>;
 
 export function parseDeadline(value: FormDataEntryValue | null | undefined) {
   if (typeof value !== "string" || value.trim() === "") return null;

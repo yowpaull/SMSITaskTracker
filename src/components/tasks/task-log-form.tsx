@@ -26,8 +26,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
 import { toDateInputValue } from "@/lib/format";
 import { STATUS_LABELS, TASK_STATUSES, type TaskStatus } from "@/lib/status";
+import {
+  countLetters,
+  REMARKS_MAX_LETTERS,
+} from "@/lib/validations/task-log";
 import type { OptionItem } from "@/components/tasks/task-filters";
 import type { TaskOption, TaskPickGroup } from "@/lib/types";
 import type { TaskLogActionState } from "@/lib/actions/task-logs";
@@ -42,6 +47,7 @@ type InitialLog = {
   urgent: boolean;
   important: boolean;
   deadline: string | null;
+  remarks: string | null;
 };
 
 /** Locate which main category / subcategory a task belongs to (for edit mode). */
@@ -78,7 +84,7 @@ export function TaskLogForm({
   ) => Promise<TaskLogActionState>;
   mode: "create" | "update";
   canAssignOthers: boolean;
-  /** Plain members: render only the status field (all other fields locked). */
+  /** Plain members: render only status + remarks (all other fields locked). */
   statusOnly?: boolean;
   brands: OptionItem[];
   taskGroups: TaskPickGroup[];
@@ -117,6 +123,7 @@ export function TaskLogForm({
   );
   const [urgent, setUrgent] = useState(initial?.urgent ?? false);
   const [important, setImportant] = useState(initial?.important ?? false);
+  const [remarks, setRemarks] = useState(initial?.remarks ?? "");
 
   // Next.js keeps this page mounted (hidden) between navigations, so a
   // create-mode form would reappear with last visit's selections. Start
@@ -136,6 +143,7 @@ export function TaskLogForm({
       setAssigneeId(defaultAssigneeId ?? null);
       setUrgent(false);
       setImportant(false);
+      setRemarks("");
     };
   }, [mode, defaultAssigneeId]);
 
@@ -193,6 +201,8 @@ export function TaskLogForm({
   const noBrands = brands.length === 0;
   // The task dropdown stays locked until a subcategory is chosen explicitly.
   const taskReady = Boolean(mainCategoryId) && subCategoryId !== null;
+  const letters = countLetters(remarks);
+  const overLimit = letters > REMARKS_MAX_LETTERS;
 
   return (
     <form ref={formRef} action={formAction} className="grid max-w-xl gap-4">
@@ -437,10 +447,37 @@ export function TaskLogForm({
         </div>
           </>
         )}
+
+        {/* Remarks: everyone's notes/links field — even in status-only
+            member mode, where it is one of the two editable fields. */}
+        <Field>
+          <FieldLabel htmlFor="remarks">Remarks</FieldLabel>
+          <Textarea
+            id="remarks"
+            name="remarks"
+            value={remarks}
+            onChange={(event) => setRemarks(event.target.value)}
+            placeholder="Notes, links, context… (optional)"
+            rows={4}
+            maxLength={REMARKS_MAX_LETTERS}
+            className="max-h-48"
+            aria-invalid={overLimit || undefined}
+            aria-describedby="remarks-letter-count"
+          />
+          <p
+            id="remarks-letter-count"
+            aria-live="polite"
+            className={`text-right text-xs tabular-nums ${
+              overLimit ? "text-destructive" : "text-muted-foreground"
+            }`}
+          >
+            {letters} / {REMARKS_MAX_LETTERS} letters
+          </p>
+        </Field>
       </FieldGroup>
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || overLimit}>
           {pending && <Spinner data-icon="inline-start" />}
           {mode === "create" ? "Create task log" : "Save changes"}
         </Button>

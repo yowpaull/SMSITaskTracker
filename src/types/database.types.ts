@@ -65,43 +65,6 @@ export type Database = {
         }
         Relationships: []
       }
-      subcategories: {
-        Row: {
-          category_id: string
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string
-          short_description: string | null
-          updated_at: string
-        }
-        Insert: {
-          category_id: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          short_description?: string | null
-          updated_at?: string
-        }
-        Update: {
-          category_id?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          short_description?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subcategories_category_id_fkey"
-            columns: ["category_id"]
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       departments: {
         Row: {
           created_at: string
@@ -170,6 +133,44 @@ export type Database = {
           },
         ]
       }
+      subcategories: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          short_description: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          short_description?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          short_description?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_logs: {
         Row: {
           assigned_to: string
@@ -180,6 +181,7 @@ export type Database = {
           deadline: string | null
           id: string
           important: boolean
+          remarks: string | null
           status: string
           task_id: string
           updated_at: string
@@ -194,6 +196,7 @@ export type Database = {
           deadline?: string | null
           id?: string
           important?: boolean
+          remarks?: string | null
           status?: string
           task_id: string
           updated_at?: string
@@ -208,6 +211,7 @@ export type Database = {
           deadline?: string | null
           id?: string
           important?: boolean
+          remarks?: string | null
           status?: string
           task_id?: string
           updated_at?: string

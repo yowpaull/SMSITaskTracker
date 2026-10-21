@@ -2,6 +2,8 @@
 -- filters, search, delayed badges, pagination). Idempotent — first removes
 -- previously seeded rows (recognizable 5eed****-… uuid prefix), then
 -- re-inserts 50 logs spread across all profiles, statuses, and dates.
+-- Skips silently (no-op) on a fresh database that has no profiles, tasks,
+-- or brands yet, so `db push` succeeds on a brand-new project.
 do $$
 declare
   v_profiles uuid[];
@@ -26,8 +28,8 @@ begin
   if coalesce(array_length(v_profiles, 1), 0) = 0
      or coalesce(array_length(v_tasks, 1), 0) = 0
      or coalesce(array_length(v_brands, 1), 0) = 0 then
-    raise exception
-      'Seed needs at least one profile, task, and brand — create them in the app first.';
+    -- Nothing to seed against yet — nothing to do either.
+    return;
   end if;
 
   delete from public.task_logs where id::text like '5eed%';

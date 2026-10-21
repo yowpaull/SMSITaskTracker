@@ -41,7 +41,12 @@ test.describe("My tasks (admin)", () => {
 
     await page.locator("#assignee-select").click();
     const otherOption = page.getByRole("option", { name: /^E2E/ }).first();
-    test.skip(!(await otherOption.count()), "No E2E member to assign");
+    try {
+      await expect(otherOption).toBeVisible({ timeout: 5_000 });
+    } catch {
+      await page.keyboard.press("Escape");
+      test.skip(true, "No E2E member to assign");
+    }
     await otherOption.click();
 
     await page.locator("#deadline").fill(daysFromNow(5));

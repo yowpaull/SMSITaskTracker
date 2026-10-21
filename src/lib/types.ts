@@ -67,6 +67,7 @@ export type TaskLog = {
   important: boolean;
   completed_at: string | null;
   deadline: string | null;
+  remarks: string | null;
   created_at: string;
   updated_at: string;
 };

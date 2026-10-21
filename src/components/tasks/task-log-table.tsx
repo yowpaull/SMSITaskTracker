@@ -11,6 +11,7 @@ import {
 import { formatDate } from "@/lib/format";
 import { isOverdue } from "@/lib/status";
 import type { TaskLogWithRelations } from "@/lib/types";
+import { LinkifiedText } from "@/components/shared/linkified-text";
 import { DeleteTaskLogButton } from "./delete-task-log-button";
 import { PriorityBadges } from "./priority-badges";
 import { OverdueBadge, StatusBadge } from "./status-badge";
@@ -38,6 +39,7 @@ export function TaskLogTable({
             <TableHead>Overdue</TableHead>
             <TableHead>Priority</TableHead>
             <TableHead>Deadline</TableHead>
+            <TableHead>Remarks</TableHead>
             <TableHead>Date Created</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -83,6 +85,15 @@ export function TaskLogTable({
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 {formatDate(log.deadline)}
+              </TableCell>
+              <TableCell className="max-w-[18rem] align-top">
+                <div className="line-clamp-2 whitespace-pre-wrap text-muted-foreground">
+                  {log.remarks ? (
+                    <LinkifiedText text={log.remarks} />
+                  ) : (
+                    "—"
+                  )}
+                </div>
               </TableCell>
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 {formatDate(log.created_at)}

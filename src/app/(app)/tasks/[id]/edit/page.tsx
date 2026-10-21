@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BackButton } from "@/components/shared/back-button";
+import { LinkifiedText } from "@/components/shared/linkified-text";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge, OverdueBadge } from "@/components/tasks/status-badge";
 import { TaskLogForm } from "@/components/tasks/task-log-form";
@@ -51,8 +52,8 @@ async function TaskLogEditContent({
         title="Edit task log"
         description={
           statusOnly
-            ? "Update the status of this task log. All other fields are locked."
-            : "Update status, priority, deadline, or assignment."
+            ? "Update the status or remarks of this task log. All other fields are locked."
+            : "Update status, priority, deadline, assignment, or remarks."
         }
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -112,6 +113,12 @@ async function TaskLogEditContent({
               </p>
             </div>
             <div>
+              <p className="text-muted-foreground text-xs">Remarks</p>
+              <p className="whitespace-pre-wrap">
+                {log.remarks ? <LinkifiedText text={log.remarks} /> : "—"}
+              </p>
+            </div>
+            <div>
               <p className="text-muted-foreground text-xs">Completed at</p>
               <p>{formatDateTime(log.completed_at)}</p>
             </div>
@@ -152,7 +159,7 @@ function DetailSkeleton() {
             <Skeleton className="h-4 w-20" />
           </CardHeader>
           <CardContent className="grid gap-3">
-            {Array.from({ length: 6 }).map((_, index) => (
+            {Array.from({ length: 8 }).map((_, index) => (
               <Skeleton key={index} className="h-8 w-full" />
             ))}
           </CardContent>

@@ -48,6 +48,7 @@ export async function GET(request: Request) {
     "Deadline",
     "Completed at",
     "Created at",
+    "Remarks",
   ];
 
   const rows = logs.map((log) => [
@@ -65,6 +66,7 @@ export async function GET(request: Request) {
     formatDate(log.deadline),
     formatDateTime(log.completed_at),
     formatDateTime(log.created_at),
+    log.remarks ?? "",
   ]);
 
   const worksheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
@@ -79,6 +81,7 @@ export async function GET(request: Request) {
     { wch: 16 },
     { wch: 20 },
     { wch: 20 },
+    { wch: 40 },
   ];
 
   const workbook = XLSX.utils.book_new();

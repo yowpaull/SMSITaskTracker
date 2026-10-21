@@ -180,6 +180,7 @@ export type Database = {
           deadline: string | null
           id: string
           important: boolean
+          remarks: string | null
           status: string
           task_id: string
           updated_at: string
@@ -194,6 +195,7 @@ export type Database = {
           deadline?: string | null
           id?: string
           important?: boolean
+          remarks?: string | null
           status?: string
           task_id: string
           updated_at?: string
@@ -208,6 +210,7 @@ export type Database = {
           deadline?: string | null
           id?: string
           important?: boolean
+          remarks?: string | null
           status?: string
           task_id?: string
           updated_at?: string

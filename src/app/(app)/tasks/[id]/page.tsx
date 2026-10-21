@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BackButton } from "@/components/shared/back-button";
+import { LinkifiedText } from "@/components/shared/linkified-text";
 import { PageHeader } from "@/components/shared/page-header";
 import { PriorityBadges } from "@/components/tasks/priority-badges";
 import { StatusBadge, OverdueBadge } from "@/components/tasks/status-badge";
@@ -88,6 +89,12 @@ async function TaskLogViewContent({
             <p>{formatDateTime(log.completed_at)}</p>
           </div>
           <div>
+            <p className="text-muted-foreground text-xs">Remarks</p>
+            <p className="whitespace-pre-wrap">
+              {log.remarks ? <LinkifiedText text={log.remarks} /> : "—"}
+            </p>
+          </div>
+          <div>
             <p className="text-muted-foreground text-xs">Created</p>
             <p>{formatDateTime(log.created_at)}</p>
           </div>
@@ -117,7 +124,7 @@ function ViewSkeleton() {
           <Skeleton className="h-4 w-32" />
         </CardHeader>
         <CardContent className="grid gap-3">
-          {Array.from({ length: 7 }).map((_, index) => (
+          {Array.from({ length: 8 }).map((_, index) => (
             <Skeleton key={index} className="h-8 w-full" />
           ))}
         </CardContent>

@@ -10,7 +10,7 @@ export const TASK_LOG_PAGE_SIZE = 25;
 
 const LOG_SELECT = `
   id, task_id, brand_id, assigned_to, created_by, status, urgent, important,
-  completed_at, deadline, created_at, updated_at,
+  completed_at, deadline, remarks, created_at, updated_at,
   task:tasks!inner ( id, name, subcategory_id, subcategory:subcategories ( id, name, category_id, category:categories ( id, name ) ) ),
   brand:brands ( id, name ),
   assignee:profiles!assigned_to ( id, full_name, email )

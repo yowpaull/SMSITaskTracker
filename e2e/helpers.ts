@@ -139,8 +139,24 @@ export async function trySelectOptionAt(
     await page.keyboard.press("Escape");
     return false;
   }
-  await visible.nth(index).click();
-  return true;
+  try {
+    await visible.nth(index).click({ timeout: 10_000 });
+    return true;
+  } catch {
+    // The popup can close itself (stream/re-render race) between the
+    // visibility check and the click. Close any half-open popup, reopen,
+    // and pick once more before giving up.
+    await page.keyboard.press("Escape");
+    await page.locator(selector).click();
+    try {
+      await expect(visible.first()).toBeVisible({ timeout: 8_000 });
+      await visible.nth(index).click();
+      return true;
+    } catch {
+      await page.keyboard.press("Escape");
+      throw new Error(`Select popup for ${selector} would not stay open`);
+    }
+  }
 }
 
 /**

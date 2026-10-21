@@ -10,6 +10,7 @@ import {
   formChecked,
   memberUpdateTaskLogSchema,
   parseDeadline,
+  REMARKS_MAX_LETTERS,
   updateTaskLogSchema,
 } from "@/lib/validations/task-log";
 import type { TaskStatus } from "@/lib/status";
@@ -20,6 +21,14 @@ export type TaskLogActionState = ActionResult;
 function formDataValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" && value !== "" ? value : undefined;
+}
+
+/** The DB check mirrors zod's letter limit (it guards direct API writes);
+ *  surface it with the same friendly message. */
+function remarksLimitError(message: string): string | null {
+  return message.includes("task_logs_remarks_letter_limit")
+    ? `Remarks must be ${REMARKS_MAX_LETTERS} letters or fewer.`
+    : null;
 }
 
 export async function createTaskLog(
@@ -35,6 +44,7 @@ export async function createTaskLog(
     deadline: formDataValue(formData, "deadline"),
     urgent: formChecked(formData, "urgent"),
     important: formChecked(formData, "important"),
+    remarks: formDataValue(formData, "remarks"),
   });
 
   if (!parsed.success) {
@@ -61,9 +71,12 @@ export async function createTaskLog(
     urgent: parsed.data.urgent,
     important: parsed.data.important,
     deadline: parseDeadline(parsed.data.deadline),
+    remarks: parsed.data.remarks,
   });
 
   if (error) {
+    const limit = remarksLimitError(error.message);
+    if (limit) return { error: limit };
     if (profile.is_department_head && profile.role !== "admin") {
       return {
         error:
@@ -90,12 +103,14 @@ export async function updateTaskLog(
 
   const supabase = await createClient();
 
-  // Plain members may only change the status of a log — every other field
-  // stays as created/assigned (the DB trigger enforces the same rule).
+  // Plain members may only change the status and remarks of a log — every
+  // other field stays as created/assigned (the DB trigger enforces the
+  // same rule).
   if (!isStaff) {
     const parsed = memberUpdateTaskLogSchema.safeParse({
       id: formDataValue(formData, "id"),
       status: formDataValue(formData, "status"),
+      remarks: formDataValue(formData, "remarks"),
     });
     if (!parsed.success) {
       return {
@@ -109,10 +124,16 @@ export async function updateTaskLog(
 
     const { error } = await supabase
       .from("task_logs")
-      .update({ status, completed_at: completedAt })
+      .update({
+        status,
+        completed_at: completedAt,
+        remarks: parsed.data.remarks,
+      })
       .eq("id", parsed.data.id);
 
     if (error) {
+      const limit = remarksLimitError(error.message);
+      if (limit) return { error: limit };
       return { error: `Could not update task log: ${error.message}` };
     }
 
@@ -132,6 +153,7 @@ export async function updateTaskLog(
     deadline: parseDeadline(formData.get("deadline")) ?? undefined,
     urgent: formChecked(formData, "urgent"),
     important: formChecked(formData, "important"),
+    remarks: formDataValue(formData, "remarks"),
   });
 
   if (!parsed.success) {
@@ -158,10 +180,13 @@ export async function updateTaskLog(
       important: parsed.data.important,
       deadline: parsed.data.deadline ?? null,
       completed_at: completedAt,
+      remarks: parsed.data.remarks,
     })
     .eq("id", parsed.data.id);
 
   if (error) {
+    const limit = remarksLimitError(error.message);
+    if (limit) return { error: limit };
     return { error: `Could not update task log: ${error.message}` };
   }
 

@@ -69,6 +69,7 @@ Soft-deactivate departments (`is_active = false`); members keep their assignment
 - `important boolean` — default `false`
 - `completed_at timestamptz` — optional; use this instead of the ambiguous `Decision` field when recording completion time
 - `deadline timestamptz` — optional
+- `remarks text` — optional free text (links allowed); at most **1000 letters** (characters — spaces and newlines included — trimmed before counting), enforced by the form's live counter and zod validation via `countLetters()` in `src/lib/validations/task-log.ts` (trimmed code-point length, matching Postgres `char_length`); a database check constraint (`task_logs_remarks_letter_limit`) applies the same cap to direct API writes
 - `created_at timestamptz` — default `now()`
 - `updated_at timestamptz` — default `now()`
 
@@ -88,7 +89,7 @@ If the existing database uses different column names, inspect the actual schema 
 - Departments group PEOPLE only; brands and task definitions stay organization-wide. Progress for a department = task logs whose `assigned_to` member belongs to it.
 - Admins see overall progress per department (dashboard rollup incl. an "Unassigned" bucket), manage all departments, roles, and head assignments.
 - Department Heads (multiple per department allowed) see only their own department: dashboard stats, member list, and they manage their members (create into their department, activate/deactivate, move members in) and may assign/edit task logs for their members. Deleting logs: admins delete any log, department heads their own logs plus logs assigned to members of their department, plain members never.
-- Plain members: may create task logs for themselves only (assignee forced to self), may update **only the `status`** of a log after creation (task, brand, assignee, deadline, priority and ownership stay locked — enforced in the server action and by a database trigger, so assigned work cannot be manipulated), and cannot delete any log. Task definitions (categories, subcategories, tasks on the Create Task page) are created by admins and department heads only (staff-only page + insert RLS + staff-checked actions).
+- Plain members: may create task logs for themselves only (assignee forced to self), may update **only the `status` and `remarks`** of a log after creation (task, brand, assignee, deadline, priority and ownership stay locked — enforced in the server action and by a database trigger, so assigned work cannot be manipulated; `remarks` is capped at 1000 letters (characters)), and cannot delete any log. Task definitions (categories, subcategories, tasks on the Create Task page) are created by admins and department heads only (staff-only page + insert RLS + staff-checked actions).
 - profiles writes by heads go through SECURITY DEFINER server actions using the service client (`SUPABASE_SECRET_KEY`) with explicit same-department checks, because the RLS UPDATE policy on `profiles` is admin-only (RLS cannot restrict columns). task_logs head writes go through RLS policies using `is_head_of_profile()`.
 - Existing members without a department stay `department_id = NULL` until an admin assigns them.
 
@@ -123,7 +124,7 @@ The current schema does not include task ownership or assignment. If multi-user 
 
 - Categories classify subcategories; subcategories classify task definitions.
 - Tasks belong to one subcategory (and therefore one main category).
-- Task logs reference a task definition and a brand, and store the task's status, urgency, importance, deadline, and completion time.
+- Task logs reference a task definition and a brand, and store the task's status, urgency, importance, deadline, completion time, and optional remarks (free text, max 1000 letters/characters - editable by everyone, including plain members).
 - A completed task should have `completed_at` populated; when a task is reopened, clear it if that matches the product's intended behavior.
 - Dashboard metrics must be derived from database records and use clearly defined status and date rules.
 - Filter and sort tasks using database queries when practical rather than downloading all records unnecessarily.

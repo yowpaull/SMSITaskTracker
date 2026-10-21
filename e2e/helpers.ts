@@ -123,7 +123,13 @@ export async function trySelectOptionAt(
   index: number,
 ): Promise<boolean> {
   const selector = id.startsWith("#") ? id : `#${id}`;
-  await page.locator(selector).click();
+  try {
+    await page.locator(selector).waitFor({ state: "attached", timeout: 5_000 });
+    await page.locator(selector).click();
+  } catch {
+    // Select never rendered (no active definitions) — no option to pick.
+    return false;
+  }
   // Scope to visible options: closed or reloading popups leave hidden
   // option nodes in the DOM that count() would include and click() would
   // hang on. Wait out the async popup render before deciding.

@@ -23,6 +23,7 @@ loadLocalEnv();
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   // Shared hosted Supabase + shared accounts: keep runs serial and single-worker.
   fullyParallel: false,
   forbidOnly: !!process.env.CI,

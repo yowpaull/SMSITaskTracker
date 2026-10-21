@@ -1,16 +1,26 @@
 import { expect, type Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 
 const adminEmail = process.env.E2E_ADMIN_EMAIL;
 const adminPassword = process.env.E2E_ADMIN_PASSWORD;
 export const memberEmail = process.env.E2E_MEMBER_EMAIL;
-const memberPassword = process.env.E2E_MEMBER_PASSWORD;
+export const memberPassword = process.env.E2E_MEMBER_PASSWORD;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const secretKey = process.env.SUPABASE_SECRET_KEY;
 
 export const hasAdminCreds = Boolean(adminEmail && adminPassword);
 export const hasMemberCreds = Boolean(memberEmail && memberPassword);
+/** Service key present in the test process and not a publishable key. */
+export const hasSecretKey = Boolean(
+  supabaseUrl && secretKey && !secretKey.startsWith("sb_publishable_"),
+);
 export const MISSING_ADMIN =
   "E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set in .env.local";
 export const MISSING_MEMBER =
   "E2E_MEMBER_EMAIL / E2E_MEMBER_PASSWORD not set in .env.local";
+export const MISSING_SECRET_KEY =
+  "SUPABASE_SECRET_KEY not set (or set to a publishable key) in .env.local";
 
 /** UI login; resolves once the app lands on an authed page. */
 export async function login(page: Page, role: "admin" | "member") {
@@ -27,6 +37,56 @@ export async function login(page: Page, role: "admin" | "member") {
 /** Timestamped name so every run creates its own data. */
 export function uniqueName(prefix: string) {
   return `${prefix} ${Date.now()}${Math.floor(Math.random() * 90 + 10)}`;
+}
+
+function adminAuth() {
+  if (!supabaseUrl || !secretKey || secretKey.startsWith("sb_publishable_")) {
+    throw new Error(MISSING_SECRET_KEY);
+  }
+  return createClient(supabaseUrl, secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+/**
+ * Mint a recovery link server-side without sending email. `hash` is the
+ * token_hash the /auth/confirm route exchanges for a session.
+ */
+export async function adminGenerateRecoveryHash(
+  email: string,
+): Promise<{ hash: string; userId: string }> {
+  const { data, error } = await adminAuth().auth.admin.generateLink({
+    type: "recovery",
+    email,
+  });
+  if (error || !data) {
+    throw new Error(`generateLink failed: ${error?.message ?? "no data"}`);
+  }
+  return { hash: data.properties.hashed_token, userId: data.user.id };
+}
+
+/** Force-set a user's password; used to restore fixtures after E2E. */
+export async function adminSetPassword(userId: string, password: string) {
+  const { error } = await adminAuth().auth.admin.updateUserById(userId, {
+    password,
+  });
+  if (error) {
+    throw new Error(`updateUserById failed: ${error.message}`);
+  }
+}
+
+/** Password-grant probe: true when the email/password pair is accepted. */
+export async function canSignIn(email: string, password: string) {
+  if (!supabaseUrl || !publishableKey) return false;
+  const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: {
+      apikey: publishableKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+  return res.ok;
 }
 
 /** YYYY-MM-DD, `days` from today (UTC). */
@@ -63,7 +123,13 @@ export async function trySelectOptionAt(
   index: number,
 ): Promise<boolean> {
   const selector = id.startsWith("#") ? id : `#${id}`;
-  await page.locator(selector).click();
+  try {
+    await page.locator(selector).waitFor({ state: "attached", timeout: 5_000 });
+    await page.locator(selector).click();
+  } catch {
+    // Select never rendered (no active definitions) — no option to pick.
+    return false;
+  }
   // Scope to visible options: closed or reloading popups leave hidden
   // option nodes in the DOM that count() would include and click() would
   // hang on. Wait out the async popup render before deciding.
@@ -79,8 +145,24 @@ export async function trySelectOptionAt(
     await page.keyboard.press("Escape");
     return false;
   }
-  await visible.nth(index).click();
-  return true;
+  try {
+    await visible.nth(index).click({ timeout: 10_000 });
+    return true;
+  } catch {
+    // The popup can close itself (stream/re-render race) between the
+    // visibility check and the click. Close any half-open popup, reopen,
+    // and pick once more before giving up.
+    await page.keyboard.press("Escape");
+    await page.locator(selector).click();
+    try {
+      await expect(visible.first()).toBeVisible({ timeout: 8_000 });
+      await visible.nth(index).click();
+      return true;
+    } catch {
+      await page.keyboard.press("Escape");
+      throw new Error(`Select popup for ${selector} would not stay open`);
+    }
+  }
 }
 
 /**

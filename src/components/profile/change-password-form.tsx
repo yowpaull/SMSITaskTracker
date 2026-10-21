@@ -5,8 +5,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { PasswordInput } from "@/components/shared/password-input";
 import { changePassword } from "@/lib/actions/profile";
 import { useResultToast } from "@/hooks/use-result-toast";
 
@@ -31,10 +31,9 @@ export function ChangePasswordForm() {
               <FieldLabel htmlFor="profile-current-password">
                 Current password
               </FieldLabel>
-              <Input
+              <PasswordInput
                 id="profile-current-password"
                 name="current_password"
-                type="password"
                 required
                 autoComplete="current-password"
               />
@@ -43,10 +42,9 @@ export function ChangePasswordForm() {
               <FieldLabel htmlFor="profile-new-password">
                 New password
               </FieldLabel>
-              <Input
+              <PasswordInput
                 id="profile-new-password"
                 name="new_password"
-                type="password"
                 required
                 minLength={8}
                 autoComplete="new-password"
@@ -59,10 +57,9 @@ export function ChangePasswordForm() {
               <FieldLabel htmlFor="profile-confirm-password">
                 Confirm new password
               </FieldLabel>
-              <Input
+              <PasswordInput
                 id="profile-confirm-password"
                 name="confirm_password"
-                type="password"
                 required
                 minLength={8}
                 autoComplete="new-password"

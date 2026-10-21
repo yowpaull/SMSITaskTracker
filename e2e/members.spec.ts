@@ -115,11 +115,15 @@ test.describe("Members (admin)", () => {
   test("pagination appears only with more than one page", async ({ page }) => {
     await page.goto("/members");
     const pagination = page.getByRole("navigation", { name: "Pagination" });
-    if (await pagination.isVisible()) {
-      await pagination.getByText("Next").click();
-      await page.waitForURL(/page=2/);
-    } else {
+    try {
+      // PPR streams the list after the shell paints — a raw isVisible()
+      // here races the stream and would wrongly skip. Only when the list
+      // has settled with no pagination is there genuinely one page.
+      await expect(pagination).toBeVisible({ timeout: 15_000 });
+    } catch {
       test.skip(true, "Fewer than two pages of members");
     }
+    await pagination.getByText("Next").click();
+    await page.waitForURL(/page=2/);
   });
 });

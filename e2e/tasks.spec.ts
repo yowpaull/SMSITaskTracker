@@ -26,7 +26,14 @@ test.describe("Tasks", () => {  test.beforeEach(async ({ page }) => {
     const table = page.getByRole("table");
     const empty = page.getByText("No task logs found");
     if (await table.isVisible()) {
-      for (const col of ["Task", "Status", "Overdue", "Deadline", "Actions"]) {
+      for (const col of [
+        "Task",
+        "Status",
+        "Overdue",
+        "Deadline",
+        "Remarks",
+        "Actions",
+      ]) {
         await expect(table.getByRole("columnheader", { name: col })).toBeVisible();
       }
       // Admins assign to others; members get personal KPI cards instead.
@@ -106,6 +113,12 @@ test.describe("Tasks", () => {  test.beforeEach(async ({ page }) => {
     );
 
     await page.locator("#deadline").fill(daysFromNow(5));
+    await page.locator("#remarks").fill(
+      "e2e note https://example.com/e2e-create-note",
+    );
+    await expect(page.locator("#remarks-letter-count")).toHaveText(
+      "44 / 1000 letters",
+    );
     await page.getByRole("button", { name: "Create task log" }).click();
     await page.waitForURL(/\/tasks\?created=1/);
 
@@ -113,6 +126,11 @@ test.describe("Tasks", () => {  test.beforeEach(async ({ page }) => {
 
     // Newest log sorts first (created_at desc) — delete it again.
     const firstRow = page.getByRole("row").nth(1);
+    await expect(
+      firstRow.getByRole("link", {
+        name: "https://example.com/e2e-create-note",
+      }),
+    ).toBeVisible();
     await firstRow.getByRole("button", { name: "Delete", exact: true }).click();
     await page
       .getByRole("alertdialog")

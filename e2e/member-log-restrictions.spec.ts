@@ -131,11 +131,11 @@ test.describe("Member task-log restrictions", () => {
       const logId = new URL(page.url()).pathname.split("/")[2];
       await expect(
         page.getByText(
-          "Update the status of this task log. All other fields are locked.",
+          "Update the status or remarks of this task log. All other fields are locked.",
         ),
       ).toBeVisible();
       await expect(page.locator("#status-select")).toBeVisible();
-      // Everything except status is locked away.
+      // Everything except status and remarks is locked away.
       for (const id of [
         "#main-category-select",
         "#sub-category-select",
@@ -148,6 +148,92 @@ test.describe("Member task-log restrictions", () => {
       }
       await expect(page.locator("#urgent")).toHaveCount(0);
       await expect(page.locator("#important")).toHaveCount(0);
+      // Remarks is the member's second editable field, with a live counter.
+      await expect(page.locator("#remarks")).toBeVisible();
+      await expect(page.locator("#remarks-letter-count")).toHaveText(
+        "0 / 1000 letters",
+      );
+
+      // The limit counts letters (characters) exactly — a bare URL counts
+      // every one of its characters, not one token per line.
+      await page
+        .locator("#remarks")
+        .fill("https://drive.google.com/drive/u/2/home");
+      await expect(page.locator("#remarks-letter-count")).toHaveText(
+        "39 / 1000 letters",
+      );
+
+      // --- Letter limit: the input itself hard-blocks past the cap -----
+      await expect(page.locator("#remarks")).toHaveAttribute(
+        "maxlength",
+        "1000",
+      );
+
+      // Over-cap input is truncated by maxLength: value, counter, and the
+      // enabled state all stop exactly at the cap.
+      await page.locator("#remarks").fill("x".repeat(1001));
+      expect(
+        await page
+          .locator("#remarks")
+          .evaluate((el) => (el as HTMLTextAreaElement).value.length),
+      ).toBe(1000);
+      await expect(page.locator("#remarks-letter-count")).toHaveText(
+        "1000 / 1000 letters",
+      );
+      await expect(
+        page.getByRole("button", { name: "Save changes" }),
+      ).toBeEnabled();
+
+      // The auto-growing (field-sizing-content) box stops at max-h-48 and
+      // scrolls instead of stretching the form.
+      await page
+        .locator("#remarks")
+        .fill(Array.from({ length: 500 }, () => "x").join("\n"));
+      await expect
+        .poll(() => page.locator("#remarks").evaluate((el) => el.clientHeight))
+        .toBeLessThanOrEqual(200);
+      expect(
+        await page
+          .locator("#remarks")
+          .evaluate((el) => el.scrollHeight > el.clientHeight),
+      ).toBe(true);
+
+      // A programmatic value that bypasses maxLength still trips the
+      // safety net: the counter turns red and saving is blocked.
+      await page
+        .locator("#remarks")
+        .evaluate((el) => el.removeAttribute("maxlength"));
+      const overLimitLetters = Array.from(
+        { length: 501 },
+        () => "x",
+      ).join("\n");
+      await page.locator("#remarks").fill(overLimitLetters);
+      await page
+        .locator("#remarks")
+        .evaluate((el) => el.setAttribute("maxlength", "1000"));
+      await expect(page.locator("#remarks-letter-count")).toHaveText(
+        "1001 / 1000 letters",
+      );
+      await expect(
+        page.getByRole("button", { name: "Save changes" }),
+      ).toBeDisabled();
+
+      const atLimitLetters = "x".repeat(1000);
+      await page.locator("#remarks").fill(atLimitLetters);
+      await expect(page.locator("#remarks-letter-count")).toHaveText(
+        "1000 / 1000 letters",
+      );
+      await expect(
+        page.getByRole("button", { name: "Save changes" }),
+      ).toBeEnabled();
+
+      // The remark that actually gets saved (includes a link).
+      await page
+        .locator("#remarks")
+        .fill("See https://example.com/spec for the full spec.");
+      await expect(page.locator("#remarks-letter-count")).toHaveText(
+        "47 / 1000 letters",
+      );
 
       await page.locator("#status-select").click();
       const inProgressOption = page.getByRole("option", {
@@ -158,10 +244,13 @@ test.describe("Member task-log restrictions", () => {
       await page.getByRole("button", { name: "Save changes" }).click();
       await expect(page.getByText("Task log updated.")).toBeVisible();
 
-      // --- Verify: status changed, every other field untouched ---
+      // --- Verify: status + remarks changed, every other field untouched ---
       await page.goto("/tasks");
       const updatedRow = page.getByRole("row").nth(1);
       await expect(updatedRow.getByText("In progress")).toBeVisible();
+      await expect(
+        updatedRow.getByRole("link", { name: "https://example.com/spec" }),
+      ).toBeVisible();
       const expectedDeadline = new Intl.DateTimeFormat("en", {
         dateStyle: "medium",
         timeZone: "UTC",
@@ -176,6 +265,13 @@ test.describe("Member task-log restrictions", () => {
         page.getByText(expectedDeadline, { exact: true }),
       ).toBeVisible();
       await expect(page.getByText("In progress").first()).toBeVisible();
+      // Remarks render as pre-wrapped, linkified text on the view page.
+      await expect(
+        page.getByRole("link", { name: "https://example.com/spec" }),
+      ).toBeVisible();
+      await expect(
+        page.getByText("See https://example.com/spec").first(),
+      ).toBeVisible();
 
       // --- Cleanup: admin deletes the log again ---
       await page.getByRole("button", { name: "Sign out" }).click();

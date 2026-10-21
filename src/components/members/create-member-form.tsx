@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { PasswordInput } from "@/components/shared/password-input";
 import { createMember } from "@/lib/actions/members";
 import { useResultToast } from "@/hooks/use-result-toast";
 
@@ -102,10 +103,9 @@ export function CreateMemberForm({
             </Field>
             <Field>
               <FieldLabel htmlFor="member-password">Temporary password</FieldLabel>
-              <Input
+              <PasswordInput
                 id="member-password"
                 name="password"
-                type="password"
                 required
                 minLength={8}
                 autoComplete="new-password"
